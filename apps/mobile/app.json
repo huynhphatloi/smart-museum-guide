@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "Museum Guide",
+    "slug": "smart-museum-guide",
+    "scheme": "museumguide",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF8F5"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.museum.smartguide",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "The guide uses Bluetooth to detect the museum beacon in the room you are standing in, so it can show the right exhibit. Signal strength is processed on your device only.",
+        "NSBluetoothPeripheralUsageDescription": "The guide uses Bluetooth to detect nearby museum beacons.",
+        "NSCameraUsageDescription": "The camera is used only to scan the QR code printed next to an exhibit.",
+        "UIBackgroundModes": []
+      }
+    },
+    "android": {
+      "package": "com.museum.smartguide",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1C1917"
+      },
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysPermission": "The guide uses Bluetooth to detect the museum beacon nearest to you."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "The camera is used only to scan exhibit QR codes."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {}
+    }
+  }
+}

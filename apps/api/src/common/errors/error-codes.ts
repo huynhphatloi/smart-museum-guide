@@ -1,0 +1,31 @@
+/**
+ * Machine readable error codes returned in every non-2xx response body.
+ * Clients (mobile / visitor web / admin) branch on these instead of parsing
+ * human readable messages.
+ */
+export const ErrorCode = {
+  // Content resolution
+  ZONE_NOT_FOUND: 'ZONE_NOT_FOUND',
+  BEACON_NOT_FOUND: 'BEACON_NOT_FOUND',
+  BEACON_DISABLED: 'BEACON_DISABLED',
+  BEACON_IDENTITY_INVALID: 'BEACON_IDENTITY_INVALID',
+  BLE_SCAN_UNAVAILABLE: 'BLE_SCAN_UNAVAILABLE',
+  NO_ACTIVE_EXHIBIT: 'NO_ACTIVE_EXHIBIT',
+  EXHIBIT_NOT_FOUND: 'EXHIBIT_NOT_FOUND',
+  EXHIBIT_NOT_PUBLISHED: 'EXHIBIT_NOT_PUBLISHED',
+  TRANSLATION_UNAVAILABLE: 'TRANSLATION_UNAVAILABLE',
+
+  // Scheduling
+  SCHEDULE_OVERLAP: 'SCHEDULE_OVERLAP',
+  INVALID_DATE_RANGE: 'INVALID_DATE_RANGE',
+
+  // Generic
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  UNIQUE_CONSTRAINT: 'UNIQUE_CONSTRAINT',
+  RESOURCE_IN_USE: 'RESOURCE_IN_USE',
+  NOT_FOUND: 'NOT_FOUND',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];

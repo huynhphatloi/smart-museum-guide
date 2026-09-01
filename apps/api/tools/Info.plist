@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.museum.smartguide.beacon-scan</string>
+  <key>CFBundleName</key>
+  <string>beacon-scan</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0.0</string>
+  <!-- macOS aborts a CoreBluetooth process that has no usage description.
+       This string is what the system permission prompt shows. -->
+  <key>NSBluetoothAlwaysUsageDescription</key>
+  <string>Reads the identity broadcast by museum beacons so staff can register them in the CMS.</string>
+</dict>
+</plist>

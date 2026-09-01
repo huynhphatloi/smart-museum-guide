@@ -1,0 +1,46 @@
+{
+  "name": "smart-museum-guide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Multilingual Museum Guide using BLE Beacons and QR Fallback",
+  "license": "MIT",
+  "workspaces": [
+    "apps/api",
+    "apps/admin",
+    "apps/visitor-web"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "postinstall": "npm run install:mobile",
+    "install:mobile": "npm --prefix apps/mobile install --no-audit --no-fund",
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:admin": "npm --workspace apps/admin run dev",
+    "dev:web": "npm --workspace apps/visitor-web run dev",
+    "dev:mobile": "npm --prefix apps/mobile run start",
+    "build": "npm run build:api && npm run build:admin && npm run build:web",
+    "build:api": "npm --workspace apps/api run build",
+    "build:admin": "npm --workspace apps/admin run build",
+    "build:web": "npm --workspace apps/visitor-web run build",
+    "scanner:build": "npm --workspace apps/api run scanner:build",
+    "db:generate": "npm --workspace apps/api run prisma:generate",
+    "db:migrate": "npm --workspace apps/api run prisma:migrate",
+    "db:seed": "npm --workspace apps/api run prisma:seed",
+    "db:reset": "npm --workspace apps/api run prisma:reset",
+    "db:studio": "npm --workspace apps/api run prisma:studio",
+    "test": "npm run test:api && npm run test:mobile",
+    "test:api": "npm --workspace apps/api run test",
+    "test:mobile": "npm --prefix apps/mobile run test",
+    "lint": "npm run lint:api && npm run lint:admin && npm run lint:web && npm run lint:mobile",
+    "lint:api": "npm --workspace apps/api run lint",
+    "lint:admin": "npm --workspace apps/admin run lint",
+    "lint:web": "npm --workspace apps/visitor-web run lint",
+    "lint:mobile": "npm --prefix apps/mobile run lint",
+    "typecheck": "npm --workspace apps/api run typecheck && npm --workspace apps/admin run typecheck && npm --workspace apps/visitor-web run typecheck && npm --prefix apps/mobile run typecheck",
+    "format": "prettier --write \"apps/**/src/**/*.{ts,tsx,js,jsx,json,css,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

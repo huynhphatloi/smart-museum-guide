@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7d6a45"/><stop offset="100%" stop-color="#2f2a17"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#g)"/>
+  <circle cx="600" cy="360" r="180" fill="rgba(255,255,255,0.10)"/>
+  <circle cx="600" cy="360" r="110" fill="rgba(255,255,255,0.14)"/>
+  <text x="600" y="640" text-anchor="middle" font-family="Georgia, serif" font-size="46"
+        fill="rgba(255,255,255,0.92)">Dong Son Bronze Drum</text>
+  <text x="600" y="694" text-anchor="middle" font-family="Georgia, serif" font-size="24"
+        fill="rgba(255,255,255,0.6)">Sample exhibit image (seed data)</text>
+</svg>
