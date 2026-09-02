@@ -9,8 +9,8 @@ Four terminals:
 
 ```bash
 npm run dev:api      # http://localhost:3001/api
-npm run dev:admin    # http://localhost:3000
-npm run dev:web      # http://localhost:5173
+npm run dev:admin    # http://localhost:4000
+npm run dev:web      # http://localhost:4173
 npm run dev:mobile   # Expo
 ```
 
@@ -21,7 +21,7 @@ npm run db:reset     # migrate + seed
 curl http://localhost:3001/api/health
 ```
 
-Sign in at <http://localhost:3000/login> with `admin@museum.local` / `Admin@12345`.
+Sign in at <http://localhost:4000/login> with `admin@museum.local` / `Admin@12345`.
 
 ---
 
@@ -53,7 +53,7 @@ Sign in at <http://localhost:3000/login> with `admin@museum.local` / `Admin@1234
 
 ## Scenario 2 — QR visitor: no app, no account
 
-1. Open <http://localhost:5173/q/ZONE_A01> (or scan the QR from the zone page
+1. Open <http://localhost:4173/q/ZONE_A01> (or scan the QR from the zone page
    with a phone on the same network — put your LAN IP in `VISITOR_WEB_URL`).
 2. The page loads whatever is currently in `ZONE_A01`. No login, no install.
 3. Switch the language selector to **Tiếng Việt** — title, descriptions and the
@@ -61,7 +61,7 @@ Sign in at <http://localhost:3000/login> with `admin@museum.local` / `Admin@1234
 4. Press play on the audio player.
 5. Choose **한국어**. There is no Korean translation, so the page falls back and
    *says so*: "이 전시물은 아직 해당 언어를 지원하지 않습니다."
-6. Visit <http://localhost:5173/q/NOPE> — a clean "Zone not found" state.
+6. Visit <http://localhost:4173/q/NOPE> — a clean "Zone not found" state.
 
 ---
 

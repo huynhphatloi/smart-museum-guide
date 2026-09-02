@@ -169,8 +169,8 @@ Four terminals (or four tabs):
 
 ```bash
 npm run dev:api      # http://localhost:3001/api
-npm run dev:admin    # http://localhost:3000
-npm run dev:web      # http://localhost:5173
+npm run dev:admin    # http://localhost:4000
+npm run dev:web      # http://localhost:4173
 npm run dev:mobile   # Expo dev server
 ```
 
@@ -184,7 +184,7 @@ curl "http://localhost:3001/api/public/zones/ZONE_A01/active-exhibit?lang=en"
 ### Demo credentials
 
 ```
-http://localhost:3000/login
+http://localhost:4000/login
 admin@museum.local  /  Admin@12345
 ```
 

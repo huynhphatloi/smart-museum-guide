@@ -15,7 +15,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:3001'),
   /// Base URL of the Visitor Web app - used to build the QR payload for a zone.
-  VISITOR_WEB_URL: z.string().url().default('http://localhost:5173'),
+  VISITOR_WEB_URL: z.string().url().default('http://localhost:4173'),
 
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().default(25),
@@ -23,7 +23,7 @@ export const envSchema = z.object({
   DEFAULT_LANGUAGE: z.string().min(2).default('vi'),
   SUPPORTED_LANGUAGES: z.string().default('vi,en'),
 
-  CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173'),
+  CORS_ORIGINS: z.string().default('http://localhost:4000,http://localhost:4173'),
 
   SEED_ADMIN_EMAIL: z.string().email().default('admin@museum.local'),
   SEED_ADMIN_PASSWORD: z.string().min(6).default('Admin@12345'),

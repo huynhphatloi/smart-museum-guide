@@ -18,7 +18,7 @@ const prisma = new PrismaClient();
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@museum.local';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Admin@12345';
-const VISITOR_WEB_URL = (process.env.VISITOR_WEB_URL ?? 'http://localhost:5173').replace(/\/$/, '');
+const VISITOR_WEB_URL = (process.env.VISITOR_WEB_URL ?? 'http://localhost:4173').replace(/\/$/, '');
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? 'uploads';
 
 // --- demo timeline ---------------------------------------------------------
