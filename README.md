@@ -1,66 +1,71 @@
 # Smart Museum Guide
 
-A multilingual museum guide with BLE zone detection and QR fallback.
+A multilingual museum guide that delivers exhibit content through automatic BLE beacon detection or a QR fallback.
 
-Beacons and QR codes identify a **zone**, never an exhibit. The backend resolves
-the exhibit currently assigned to that zone, so exhibition changes do not
-require reflashing hardware or reprinting QR codes.
+Visitors interact with a zone rather than a fixed exhibit. The backend resolves the exhibit currently assigned to that zone, which allows museum staff to rotate exhibitions without reflashing beacons or reprinting QR codes.
 
 ```text
 BLE beacon ─┐
-            ├─> zone ─> current assignment ─> translated exhibit + audio
+            ├──> Zone ──> Active assignment ──> Localized exhibit and audio
 QR code  ───┘
 ```
 
-## Products
+## Repository structure
 
-The repository has three product boundaries:
+This is one Git repository containing three independently managed projects. There is no root Node.js workspace or root `node_modules` directory.
 
-| Directory | Stack | Responsibility |
-| --- | --- | --- |
-| `backend/` | NestJS + Next.js + Prisma | API and staff Admin panel |
-| `visitor-mobile/` | React Native + Expo | Automatic BLE guide and QR scanner |
-| `visitor-web/` | React + Vite | No-install QR experience |
+| Project           | Technology                          | Responsibility                               |
+| ----------------- | ----------------------------------- | -------------------------------------------- |
+| `backend/`        | NestJS, Next.js, Prisma, PostgreSQL | Public API and staff Admin panel             |
+| `visitor-mobile/` | React Native, Expo                  | BLE-guided mobile experience and QR scanning |
+| `visitor-web/`    | React, Vite                         | No-install QR visitor experience             |
 
 ```text
 smart-museum-guide/
 ├── backend/
-│   ├── package.json        Backend workspace commands
-│   ├── api/                NestJS API, Prisma schema and seed data
-│   ├── admin/              Next.js staff console
-│   └── package-lock.json   Backend dependency lockfile
-├── visitor-mobile/         Expo visitor app
-└── visitor-web/            Browser-based visitor guide
+│   ├── api/                  NestJS API, Prisma schema and seed data
+│   ├── admin/                Next.js staff Admin panel
+│   ├── package.json          Backend workspace commands
+│   └── package-lock.json     Backend dependency lockfile
+├── visitor-mobile/
+│   ├── src/                  Feature-first Expo application
+│   ├── package.json
+│   └── package-lock.json
+└── visitor-web/
+    ├── src/                  Feature-first Vite application
+    ├── package.json
+    └── package-lock.json
 ```
 
-Each product owns its package configuration, lockfile, dependencies and
-development commands. The repository root does not manage Node dependencies.
-
-The client applications use feature-first source boundaries:
+The visitor applications organize source by product feature:
 
 ```text
 src/
-├── application/            app composition and navigation
+├── application/              Application composition and navigation
 ├── features/<feature>/
-│   ├── api/                feature-specific transport when needed
-│   ├── model/              state and domain logic
-│   └── ui/                 screens and components
-└── shared/                 cross-feature API, theme, i18n and UI primitives
+│   ├── api/                  Feature-specific data access when required
+│   ├── model/                State and domain logic
+│   └── ui/                   Screens and components
+└── shared/                   Shared API, configuration, i18n, theme and UI
 ```
 
-The backend is already grouped by domain modules such as `beacons`, `zones`,
-`exhibits`, `assignments` and `public-guide`.
+The API is organized by backend domains including `auth`, `beacons`, `zones`, `exhibits`, `assignments`, `media` and `public-guide`.
 
-## Requirements
+## Prerequisites
 
-- Node.js 20+
-- npm 10+
-- PostgreSQL 14+
-- Xcode or Android Studio for a native mobile development build
+- Node.js 20 or later
+- npm 10 or later
+- PostgreSQL 14 or later
+- Xcode for iOS development, or Android Studio for Android development
+- A physical BLE-capable phone for real beacon testing
 
-## Install
+## Quick start
 
-Install each product independently:
+All commands below assume the current directory is the repository root.
+
+### 1. Install dependencies
+
+Each project must be installed independently:
 
 ```bash
 cd backend
@@ -71,68 +76,184 @@ npm install
 
 cd ../visitor-web
 npm install
+
+cd ..
 ```
 
-Create local environment files:
+The backend install also generates the Prisma Client.
+
+### 2. Create local environment files
 
 ```bash
 cp backend/api/.env.example backend/api/.env
 cp backend/admin/.env.example backend/admin/.env.local
-cp visitor-web/.env.example visitor-web/.env
 cp visitor-mobile/.env.example visitor-mobile/.env
+cp visitor-web/.env.example visitor-web/.env
 ```
 
-A physical phone cannot reach `localhost`; set `EXPO_PUBLIC_API_URL` in
-`visitor-mobile/.env` to the computer's LAN address.
+Environment ownership:
 
-## Database
+| File                       | Main configuration                                                  |
+| -------------------------- | ------------------------------------------------------------------- |
+| `backend/api/.env`         | Database, JWT, ports, CORS, uploads, languages and seed credentials |
+| `backend/admin/.env.local` | Public API URL used by the Admin panel                              |
+| `visitor-mobile/.env`      | Public API URL and device-side BLE runtime defaults                 |
+| `visitor-web/.env`         | Public API URL used by the QR web experience                        |
+
+A physical phone cannot reach the computer through `localhost`. Set `EXPO_PUBLIC_API_URL` in `visitor-mobile/.env` to the computer's LAN address, for example:
+
+```dotenv
+EXPO_PUBLIC_API_URL=http://192.168.1.20:3001/api
+```
+
+### 3. Prepare the database
+
+Create a PostgreSQL database that matches `DATABASE_URL` in `backend/api/.env`, then run:
 
 ```bash
 cd backend
 npm run db:migrate
 npm run db:seed
+cd ..
 ```
 
-Default local Admin login:
+The default local Admin account comes from the seed variables in `backend/api/.env`:
 
 ```text
-http://localhost:4000/login
-admin@museum.local / Admin@12345
+Email:    admin@museum.local
+Password: Admin@12345
 ```
 
-Change the seed credentials before using the project outside local development.
+These credentials are for local development only. Replace them before using the application in another environment.
 
-## Run
+### 4. Run the system
 
-Use four terminals. API and Admin commands run from `backend/`:
+Start each service in a separate terminal:
+
+**Backend API**
 
 ```bash
-cd backend && npm run dev:api             # http://localhost:3001/api
-cd backend && npm run dev:admin           # http://localhost:4000
-cd visitor-web && npm run dev              # http://localhost:4173
-cd visitor-mobile && npm run start         # Expo development server
+cd backend
+npm run dev:api
 ```
 
-## Beacon ownership
+**Admin panel**
 
-Museum staff manage beacon identity, zone assignment, radio values and
-**Detection reach** in **Admin > Beacon setup**. The visitor app receives those
-values read-only and never exposes RSSI, dwell, hysteresis or calibration
-controls in visitor Settings.
+```bash
+cd backend
+npm run dev:admin
+```
 
-`EXPO_PUBLIC_BLE_SIMULATION=true` supplies deterministic development signals
-without adding a simulator screen to the visitor experience. Real BLE requires
-an Expo development build because `react-native-ble-plx` is a native module.
+**Visitor Web**
+
+```bash
+cd visitor-web
+npm run dev
+```
+
+**Visitor Mobile**
 
 ```bash
 cd visitor-mobile
-npx expo prebuild
-npx expo run:ios       # or npx expo run:android
+npm run start
 ```
 
-## Verification
+| Service                 | Local address                      |
+| ----------------------- | ---------------------------------- |
+| API                     | `http://localhost:3001/api`        |
+| API health check        | `http://localhost:3001/api/health` |
+| Admin panel             | `http://localhost:4000`            |
+| Visitor Web             | `http://localhost:4173`            |
+| Expo development server | Displayed by Expo at startup       |
 
-Run checks inside each product:
+## Beacon configuration ownership
+
+Beacon configuration belongs to museum staff and is managed in **Admin → Beacons**.
+
+Admin controls:
+
+- Beacon identity and protocol values
+- Zone assignment
+- Enabled or disabled state
+- Per-beacon detection reach (`minRssi`)
+
+The visitor mobile app consumes these values read-only. Visitor Settings does not expose RSSI, reach, dwell, hysteresis or calibration controls.
+
+Mobile environment values such as `EXPO_PUBLIC_MIN_RSSI` are device-side defaults. A per-beacon reach configured in Admin takes precedence; the global mobile value is used only when a beacon has no custom value.
+
+`EXPO_PUBLIC_BLE_SIMULATION=true` enables deterministic development signals without exposing a simulator screen to visitors.
+
+## Mobile BLE development
+
+Real BLE scanning uses `react-native-ble-plx`, which requires an Expo development build. Expo Go cannot load this native module.
+
+```bash
+cd visitor-mobile
+npm run prebuild
+npm run ios
+```
+
+For Android, replace the final command with:
+
+```bash
+npm run android
+```
+
+Use `npm run start:go` only for flows that do not require native BLE scanning.
+
+## Project commands
+
+### Backend
+
+Run from `backend/`:
+
+| Command                 | Purpose                                 |
+| ----------------------- | --------------------------------------- |
+| `npm run dev:api`       | Start the API in watch mode             |
+| `npm run dev:admin`     | Start the Admin panel                   |
+| `npm run build`         | Build API and Admin                     |
+| `npm run lint`          | Lint API and Admin                      |
+| `npm run typecheck`     | Type-check API and Admin                |
+| `npm test`              | Run API tests                           |
+| `npm run db:generate`   | Generate the Prisma Client              |
+| `npm run db:migrate`    | Apply development database migrations   |
+| `npm run db:seed`       | Seed local museum and Admin data        |
+| `npm run db:studio`     | Open Prisma Studio                      |
+| `npm run db:reset`      | Recreate and reseed the local database  |
+| `npm run scanner:build` | Build the macOS beacon discovery helper |
+| `npm run format`        | Format Backend source files             |
+
+### Visitor Mobile
+
+Run from `visitor-mobile/`:
+
+| Command             | Purpose                                  |
+| ------------------- | ---------------------------------------- |
+| `npm run start`     | Start Expo for a development build       |
+| `npm run start:go`  | Start Expo Go without native BLE support |
+| `npm run ios`       | Build and run the iOS application        |
+| `npm run android`   | Build and run the Android application    |
+| `npm run lint`      | Lint source files                        |
+| `npm run typecheck` | Type-check source files                  |
+| `npm test`          | Run unit tests                           |
+| `npm run format`    | Format Mobile source files               |
+
+### Visitor Web
+
+Run from `visitor-web/`:
+
+| Command             | Purpose                              |
+| ------------------- | ------------------------------------ |
+| `npm run dev`       | Start the Vite development server    |
+| `npm run build`     | Create a production build            |
+| `npm run preview`   | Preview the production build locally |
+| `npm run lint`      | Lint source files                    |
+| `npm run typecheck` | Type-check source files              |
+| `npm run format`    | Format Web source files              |
+
+## Verification before commit
+
+Run the following checks after changing a project:
 
 ```bash
 cd backend
@@ -140,27 +261,22 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+```
 
-cd ../visitor-web
-npm run lint
-npm run typecheck
-npm run build
-
-cd ../visitor-mobile
+```bash
+cd visitor-mobile
 npm run lint
 npm run typecheck
 npm test
 ```
 
-Additional commands:
+```bash
+cd visitor-web
+npm run lint
+npm run typecheck
+npm run build
+```
 
-| Command | Purpose |
-| --- | --- |
-| `backend: npm run scanner:build` | Build the macOS helper used by Admin beacon discovery |
-| `backend: npm run db:generate` | Generate the Prisma client |
-| `backend: npm run db:studio` | Open Prisma Studio |
-| `backend: npm run db:reset` | Recreate and reseed the local database |
-| Any product: `npm run format` | Format that product's source files |
+## Privacy model
 
-Raw BLE readings and visitor movement histories are never uploaded. The phone
-contacts the API only after it confirms a zone.
+Raw BLE readings and visitor movement histories remain on the visitor's device. The mobile app contacts the API only after it confirms a zone and needs to resolve the active exhibit content.
