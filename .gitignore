@@ -17,18 +17,18 @@ out/
 !.env.example
 
 # prisma
-apps/api/prisma/*.db
-apps/api/prisma/*.db-journal
+backend/api/prisma/*.db
+backend/api/prisma/*.db-journal
 
 # uploads (local dev media storage)
-apps/api/uploads/*
-!apps/api/uploads/.gitkeep
+backend/api/uploads/*
+!backend/api/uploads/.gitkeep
 
 # expo
 .expo/
 .expo-shared/
-apps/mobile/android/
-apps/mobile/ios/
+visitor-mobile/android/
+visitor-mobile/ios/
 *.jks
 *.p8
 *.p12
@@ -54,4 +54,4 @@ Thumbs.db
 !.vscode/extensions.json
 
 # compiled native BLE scanner (build with: npm run scanner:build)
-apps/api/tools/beacon-scan
+backend/api/tools/beacon-scan

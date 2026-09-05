@@ -1,0 +1,45 @@
+{
+  "name": "@museum/backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Museum Guide API and Admin panel",
+  "workspaces": [
+    "api",
+    "admin"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "postinstall": "npm run db:generate",
+    "dev:api": "npm --workspace api run start:dev",
+    "dev:admin": "npm --workspace admin run dev",
+    "build": "npm run build:api && npm run build:admin",
+    "build:api": "npm --workspace api run build",
+    "build:admin": "npm --workspace admin run build",
+    "test": "npm run test:api",
+    "test:api": "npm --workspace api run test",
+    "lint": "npm run lint:api && npm run lint:admin",
+    "lint:api": "npm --workspace api run lint",
+    "lint:admin": "npm --workspace admin run lint",
+    "typecheck": "npm --workspace api run typecheck && npm --workspace admin run typecheck",
+    "scanner:build": "npm --workspace api run scanner:build",
+    "db:generate": "npm --workspace api run prisma:generate",
+    "db:migrate": "npm --workspace api run prisma:migrate",
+    "db:seed": "npm --workspace api run prisma:seed",
+    "db:reset": "npm --workspace api run prisma:reset",
+    "db:studio": "npm --workspace api run prisma:studio",
+    "format": "prettier --write \"{api,admin}/src/**/*.{ts,tsx,js,jsx,json,css,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 100,
+    "tabWidth": 2,
+    "endOfLine": "lf"
+  }
+}

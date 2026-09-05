@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 30% 96%;
+    --foreground: 32 14% 13%;
+    --card: 42 38% 98%;
+    --card-foreground: 32 14% 13%;
+    --popover: 42 38% 98%;
+    --popover-foreground: 32 14% 13%;
+    --primary: 6 48% 27%;
+    --primary-foreground: 42 38% 98%;
+    --secondary: 38 32% 88%;
+    --secondary-foreground: 32 14% 18%;
+    --muted: 39 23% 92%;
+    --muted-foreground: 34 9% 42%;
+    --accent: 37 34% 86%;
+    --accent-foreground: 6 48% 25%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 36 21% 82%;
+    --input: 36 21% 82%;
+    --ring: 6 48% 32%;
+    --radius: 0.45rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(
+      circle at 88% -10%,
+      hsl(37 34% 86% / 0.42),
+      transparent 30rem
+    );
+    font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family:
+      Iowan Old Style,
+      Baskerville,
+      Georgia,
+      serif;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
