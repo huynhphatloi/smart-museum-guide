@@ -22,7 +22,7 @@ export function WelcomeScreen({ navigation }: Props) {
           <Text style={styles.collectionNumber}>01</Text>
         </View>
 
-        <Eyebrow>Smart museum companion</Eyebrow>
+        <Eyebrow>{t(language, 'companion')}</Eyebrow>
         <Title>{t(language, 'appName')}</Title>
         <Body>{t(language, 'welcomeBody')}</Body>
       </View>

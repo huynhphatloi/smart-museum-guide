@@ -94,7 +94,7 @@ export function ExhibitDetailScreen({ route }: Props) {
       />
 
       <View style={styles.story}>
-        <Eyebrow>About this work</Eyebrow>
+        <Eyebrow>{t(language, 'aboutThisWork')}</Eyebrow>
         {paragraphs.map((paragraph, index) => (
           <Text key={index} style={styles.paragraph}>
             {paragraph}

@@ -16,9 +16,11 @@ import {
 } from '@/components/ui/table';
 import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
+import { useI18n } from '@/lib/i18n';
 import { DashboardSummary } from '@/lib/types';
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => apiFetch<DashboardSummary>('/admin/dashboard'),
@@ -39,30 +41,34 @@ export default function DashboardPage() {
   }
 
   if (error || !data) {
-    return (
-      <p className="text-sm text-destructive">Could not load the dashboard. Is the API running?</p>
-    );
+    return <p className="text-sm text-destructive">{t('dashboardLoadError')}</p>;
   }
 
   const stats = [
-    { label: 'Zones', value: data.counts.zones },
+    { label: t('statZones'), value: String(data.counts.zones) },
     {
-      label: 'Beacons',
-      value: `${data.counts.beacons - data.counts.disabledBeacons}/${data.counts.beacons} enabled`,
+      label: t('statBeacons'),
+      value: t('beaconsEnabled', {
+        enabled: String(data.counts.beacons - data.counts.disabledBeacons),
+        total: String(data.counts.beacons),
+      }),
     },
     {
-      label: 'Exhibits',
-      value: `${data.counts.publishedExhibits}/${data.counts.exhibits} published`,
+      label: t('statExhibits'),
+      value: t('exhibitsPublished', {
+        published: String(data.counts.publishedExhibits),
+        total: String(data.counts.exhibits),
+      }),
     },
-    { label: 'Schedule entries', value: data.counts.scheduleEntries },
+    { label: t('statSchedule'), value: String(data.counts.scheduleEntries) },
   ];
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <h1 className="text-2xl font-semibold">{t('dashboardTitle')}</h1>
         <p className="text-sm text-muted-foreground">
-          What every zone is showing right now &mdash; generated {formatDateTime(data.generatedAt)}.
+          {t('dashboardGenerated', { time: formatDateTime(data.generatedAt) })}
         </p>
       </header>
 
@@ -82,35 +88,28 @@ export default function DashboardPage() {
       {data.zonesWithoutContent.length > 0 ? (
         <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            No published exhibit is currently scheduled in{' '}
-            <strong>{data.zonesWithoutContent.join(', ')}</strong>. Visitors scanning those beacons
-            or QR codes will see an empty state.
-          </p>
+          <p>{t('zonesEmptyWarning', { zones: data.zonesWithoutContent.join(', ') })}</p>
         </div>
       ) : (
         <div className="flex items-center gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          Every zone currently resolves to a published exhibit.
+          {t('allZonesOk')}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Live zone status</CardTitle>
-          <CardDescription>
-            What each beacon and QR code resolves to right now, using the same rule the visitor apps
-            use.
-          </CardDescription>
+          <CardTitle>{t('liveZoneStatus')}</CardTitle>
+          <CardDescription>{t('liveZoneHint')}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Zone</TableHead>
-                <TableHead>Beacons</TableHead>
-                <TableHead>Current exhibit</TableHead>
-                <TableHead>On display since</TableHead>
+                <TableHead>{t('colZone')}</TableHead>
+                <TableHead>{t('colBeacons')}</TableHead>
+                <TableHead>{t('colCurrentExhibit')}</TableHead>
+                <TableHead>{t('colOnDisplaySince')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,7 +137,7 @@ export default function DashboardPage() {
                         </Badge>
                       </div>
                     ) : (
-                      <Badge variant="destructive">Nothing scheduled</Badge>
+                      <Badge variant="destructive">{t('nothingScheduled')}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

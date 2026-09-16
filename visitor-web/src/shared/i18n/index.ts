@@ -28,6 +28,8 @@ const DICTIONARY = {
     zoneCodePlaceholder: 'e.g. ZONE_A01',
     noAudio: 'No narration is available in this language.',
     poweredBy: 'No app or account needed.',
+    companion: 'Smart museum companion',
+    aboutThisWork: 'About this work',
   },
   vi: {
     appName: 'Hướng dẫn tham quan',
@@ -51,6 +53,8 @@ const DICTIONARY = {
     zoneCodePlaceholder: 'ví dụ ZONE_A01',
     noAudio: 'Chưa có thuyết minh cho ngôn ngữ này.',
     poweredBy: 'Không cần cài ứng dụng hay đăng nhập.',
+    companion: 'Người bạn đồng hành bảo tàng',
+    aboutThisWork: 'Về hiện vật này',
   },
   ja: {
     appName: '博物館ガイド',
@@ -73,6 +77,8 @@ const DICTIONARY = {
     zoneCodePlaceholder: '例: ZONE_A01',
     noAudio: 'この言語の音声ガイドはありません。',
     poweredBy: 'アプリも登録も不要です。',
+    companion: 'スマートミュージアムガイド',
+    aboutThisWork: 'この作品について',
   },
   ko: {
     appName: '박물관 가이드',
@@ -95,6 +101,8 @@ const DICTIONARY = {
     zoneCodePlaceholder: '예: ZONE_A01',
     noAudio: '이 언어의 해설이 없습니다.',
     poweredBy: '앱 설치나 계정이 필요 없습니다.',
+    companion: '스마트 박물관 동반자',
+    aboutThisWork: '이 작품에 대하여',
   },
   zh: {
     appName: '博物馆导览',
@@ -117,6 +125,8 @@ const DICTIONARY = {
     zoneCodePlaceholder: '例如 ZONE_A01',
     noAudio: '该语言暂无讲解音频。',
     poweredBy: '无需安装应用或注册账号。',
+    companion: '智能博物馆伴侣',
+    aboutThisWork: '关于这件展品',
   },
   fr: {
     appName: 'Guide du musée',
@@ -141,6 +151,8 @@ const DICTIONARY = {
     zoneCodePlaceholder: 'ex. ZONE_A01',
     noAudio: 'Aucun commentaire audio dans cette langue.',
     poweredBy: 'Ni application ni compte requis.',
+    companion: 'Compagnon de musée intelligent',
+    aboutThisWork: 'À propos de cette œuvre',
   },
 } as const;
 
@@ -155,10 +167,27 @@ export const LANGUAGE_LABELS: Record<string, string> = {
   ja: '日本語',
   ko: '한국어',
   zh: '中文',
+  'zh-hant': '繁體中文',
+  th: 'ไทย',
+  id: 'Bahasa Indonesia',
+  ms: 'Bahasa Melayu',
+  km: 'ខ្មែរ',
+  lo: 'ລາວ',
+  fil: 'Filipino',
   fr: 'Français',
   de: 'Deutsch',
   ru: 'Русский',
   es: 'Español',
+  it: 'Italiano',
+  pt: 'Português',
+  nl: 'Nederlands',
+  pl: 'Polski',
+  cs: 'Čeština',
+  sv: 'Svenska',
+  ar: 'العربية',
+  hi: 'हिन्दी',
+  tr: 'Türkçe',
+  uk: 'Українська',
 };
 
 export function languageLabel(code: string): string {

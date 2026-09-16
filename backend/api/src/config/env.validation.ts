@@ -21,12 +21,17 @@ export const envSchema = z.object({
   MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().default(25),
 
   DEFAULT_LANGUAGE: z.string().min(2).default('vi'),
-  SUPPORTED_LANGUAGES: z.string().default('vi,en'),
+  SUPPORTED_LANGUAGES: z
+    .string()
+    .default('vi,en,ja,ko,zh,zh-hant,th,id,ms,km,lo,fil,fr,de,es,ru,it,pt,nl,pl,cs,sv,ar,hi,tr,uk'),
 
   CORS_ORIGINS: z.string().default('http://localhost:4000,http://localhost:4173'),
 
   SEED_ADMIN_EMAIL: z.string().email().default('admin@museum.local'),
   SEED_ADMIN_PASSWORD: z.string().min(6).default('Admin@12345'),
+
+  /** Optional. When unset, exhibit save still works; auto-translate + TTS is skipped. */
+  OPENAI_API_KEY: z.string().optional(),
 });
 
 export type RawEnv = z.infer<typeof envSchema>;
@@ -46,6 +51,7 @@ export interface AppConfig {
   corsOrigins: string[];
   seedAdminEmail: string;
   seedAdminPassword: string;
+  openaiApiKey?: string;
 }
 
 const splitList = (value: string): string[] =>
@@ -69,10 +75,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const value = parsed.data;
-  const supportedLanguages = splitList(value.SUPPORTED_LANGUAGES);
+  const defaultLanguage = value.DEFAULT_LANGUAGE.toLowerCase();
+  const supportedLanguages = splitList(value.SUPPORTED_LANGUAGES).map((code) => code.toLowerCase());
 
-  if (!supportedLanguages.includes(value.DEFAULT_LANGUAGE)) {
-    supportedLanguages.unshift(value.DEFAULT_LANGUAGE);
+  if (!supportedLanguages.includes(defaultLanguage)) {
+    supportedLanguages.unshift(defaultLanguage);
   }
 
   return {
@@ -85,11 +92,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     visitorWebUrl: value.VISITOR_WEB_URL.replace(/\/$/, ''),
     uploadDir: value.UPLOAD_DIR,
     maxUploadSizeBytes: value.MAX_UPLOAD_SIZE_MB * 1024 * 1024,
-    defaultLanguage: value.DEFAULT_LANGUAGE,
+    defaultLanguage,
     supportedLanguages,
     corsOrigins: splitList(value.CORS_ORIGINS),
     seedAdminEmail: value.SEED_ADMIN_EMAIL,
     seedAdminPassword: value.SEED_ADMIN_PASSWORD,
+    openaiApiKey: value.OPENAI_API_KEY?.trim() || undefined,
   };
 }
 

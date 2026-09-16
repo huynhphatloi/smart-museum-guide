@@ -21,7 +21,7 @@ export function QrScreen() {
   async function handleCode(raw: string) {
     const zoneCode = zoneCodeFromQr(raw);
     if (!zoneCode) {
-      setError('This code does not look like a museum zone code.');
+      setError(t(language, 'invalidZoneCode'));
       return;
     }
     setScannerActive(false);
@@ -42,7 +42,7 @@ export function QrScreen() {
     <Screen>
       <Row style={styles.header}>
         <View style={styles.headerCopy}>
-          <Eyebrow>Gallery access</Eyebrow>
+          <Eyebrow>{t(language, 'galleryAccess')}</Eyebrow>
           <Title>{t(language, 'qrTitle')}</Title>
           <Body>{t(language, 'qrBody')}</Body>
         </View>
@@ -61,7 +61,7 @@ export function QrScreen() {
             <View style={styles.scanCornerBottomRight} />
           </View>
           <Pressable style={styles.closeScanner} onPress={() => setScannerActive(false)}>
-            <Text style={styles.closeScannerText}>Close</Text>
+            <Text style={styles.closeScannerText}>{t(language, 'close')}</Text>
           </Pressable>
         </View>
       ) : (

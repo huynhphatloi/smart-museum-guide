@@ -73,7 +73,19 @@ export class ExhibitsService {
         code: dto.code.toUpperCase().trim(),
         defaultTitle: dto.defaultTitle.trim(),
         status: dto.status ?? 'DRAFT',
+        translations: dto.translations?.length
+          ? {
+              create: dto.translations.map((translation) => ({
+                languageCode: translation.languageCode.toLowerCase(),
+                title: translation.title,
+                shortDescription: translation.shortDescription ?? null,
+                description: translation.description ?? null,
+                audioUrl: translation.audioUrl ?? null,
+              })),
+            }
+          : undefined,
       },
+      include: { translations: true },
     });
   }
 

@@ -19,9 +19,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ApiError, apiFetch } from '@/lib/api-client';
+import { useI18n } from '@/lib/i18n';
 import { Beacon, Paginated, Zone } from '@/lib/types';
 
 export default function BeaconsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Beacon | null>(null);
@@ -43,10 +45,20 @@ export default function BeaconsPage() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['beacons'] });
-      toast.success('Beacon updated.');
+      toast.success(t('beaconToggled'));
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : 'Could not update the beacon.'),
+      toast.error(error instanceof ApiError ? error.message : t('beaconToggleError')),
+  });
+
+  const deleteBeacon = useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/admin/beacons/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      toast.success(t('beaconDeleted'));
+      void queryClient.invalidateQueries({ queryKey: ['beacons'] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('beaconDeleteError')),
   });
 
   const zones = zonesQuery.data?.items ?? [];
@@ -56,46 +68,44 @@ export default function BeaconsPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-            Museum infrastructure
+            {t('beaconsEyebrow')}
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Beacon settings</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{t('beaconsTitle')}</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Assign each device to a zone and tune its detection reach. These settings are managed by
-            staff and published read-only to the visitor app.
+            {t('beaconsSubtitle')}
           </p>
         </div>
         <Button onClick={() => setCreating(true)} disabled={zones.length === 0}>
           <Plus className="h-4 w-4" />
-          New beacon
+          {t('newBeacon')}
         </Button>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle>Registered beacons</CardTitle>
-          <CardDescription>{beaconsQuery.data?.total ?? 0} beacon(s)</CardDescription>
+          <CardTitle>{t('registeredBeacons')}</CardTitle>
+          <CardDescription>
+            {t('beaconCount', { count: String(beaconsQuery.data?.total ?? 0) })}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {beaconsQuery.isLoading ? (
             <Skeleton className="m-6 h-40" />
           ) : !beaconsQuery.data?.items.length ? (
             <div className="p-6">
-              <EmptyState
-                title="No beacons registered"
-                description="Add a beacon and assign it to a zone."
-              />
+              <EmptyState title={t('noBeacons')} description={t('noBeaconsHint')} />
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Identifier</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Zone</TableHead>
-                  <TableHead>Broadcast identity</TableHead>
-                  <TableHead>Radio</TableHead>
-                  <TableHead>Detection reach</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('colIdentifier')}</TableHead>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('colZone')}</TableHead>
+                  <TableHead>{t('colBroadcast')}</TableHead>
+                  <TableHead>{t('colRadio')}</TableHead>
+                  <TableHead>{t('colReach')}</TableHead>
+                  <TableHead>{t('status')}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -126,17 +136,17 @@ export default function BeaconsPage() {
                       {beacon.advertisingIntervalMs ? ` · ${beacon.advertisingIntervalMs} ms` : ''}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {beacon.minRssi !== null ? `${beacon.minRssi} dBm` : 'museum default'}
+                      {beacon.minRssi !== null ? `${beacon.minRssi} dBm` : t('museumDefault')}
                     </TableCell>
                     <TableCell>
                       <Badge variant={beacon.enabled ? 'success' : 'destructive'}>
-                        {beacon.enabled ? 'enabled' : 'disabled'}
+                        {beacon.enabled ? t('enabled') : t('disabled')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="outline" onClick={() => setEditing(beacon)}>
-                          Edit
+                          {t('edit')}
                         </Button>
                         <Button
                           size="sm"
@@ -145,7 +155,23 @@ export default function BeaconsPage() {
                             toggleBeacon.mutate({ id: beacon.id, enabled: !beacon.enabled })
                           }
                         >
-                          {beacon.enabled ? 'Disable' : 'Enable'}
+                          {beacon.enabled ? t('disable') : t('enable')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={deleteBeacon.isPending && deleteBeacon.variables === beacon.id}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                t('deleteBeaconConfirm', { id: beacon.identifier }),
+                              )
+                            ) {
+                              deleteBeacon.mutate(beacon.id);
+                            }
+                          }}
+                        >
+                          {t('delete')}
                         </Button>
                       </div>
                     </TableCell>
@@ -157,7 +183,6 @@ export default function BeaconsPage() {
         </CardContent>
       </Card>
 
-      {/* Remounted per beacon so the uncontrolled fields pick up new defaults. */}
       {creating ? (
         <BeaconFormDialog key="new" open onOpenChange={setCreating} zones={zones} />
       ) : null}

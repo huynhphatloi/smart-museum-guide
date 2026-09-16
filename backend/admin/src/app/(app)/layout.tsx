@@ -1,27 +1,28 @@
 'use client';
 
-import { Image as ImageIcon, Landmark, LayoutDashboard, LogOut, MapPin, Radio } from 'lucide-react';
+import { Landmark, LayoutDashboard, LogOut, MapPin, Radio } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { tokenStore } from '@/lib/api-client';
+import { LanguageToggle, useI18n } from '@/lib/i18n';
 import { AdminProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
-
-const navigation = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/zones', label: 'Zones', icon: MapPin },
-  { href: '/beacons', label: 'Beacon setup', icon: Radio },
-  { href: '/exhibits', label: 'Exhibits', icon: Landmark },
-  { href: '/media', label: 'Media', icon: ImageIcon },
-];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [checked, setChecked] = useState(false);
+
+  const navigation = [
+    { href: '/dashboard', label: t('navOverview'), icon: LayoutDashboard },
+    { href: '/zones', label: t('navZones'), icon: MapPin },
+    { href: '/beacons', label: t('navBeacons'), icon: Radio },
+    { href: '/exhibits', label: t('navExhibits'), icon: Landmark },
+  ];
 
   useEffect(() => {
     if (!tokenStore.get()) {
@@ -33,7 +34,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [router]);
 
   if (!checked) {
-    return <div className="p-10 text-sm text-muted-foreground">Checking your session…</div>;
+    return <div className="p-10 text-sm text-muted-foreground">{t('checkingSession')}</div>;
   }
 
   return (
@@ -46,10 +47,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </span>
             <span>
               <span className="block font-serif text-base font-semibold leading-tight">
-                Museum Guide
+                {t('museumGuide')}
               </span>
               <span className="block text-[10px] uppercase tracking-[0.18em] text-primary-foreground/60">
-                Staff console
+                {t('staffConsole')}
               </span>
             </span>
           </Link>
@@ -77,6 +78,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <LanguageToggle />
             <span className="hidden text-xs text-primary-foreground/60 lg:inline">
               {profile?.email}
             </span>
@@ -90,7 +92,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               }}
             >
               <LogOut className="h-4 w-4" />
-              <span className="sr-only sm:not-sr-only">Sign out</span>
+              <span className="sr-only sm:not-sr-only">{t('signOut')}</span>
             </Button>
           </div>
         </div>

@@ -4,19 +4,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { formatDate, formatDateTime } from '@/lib/format';
-import { Exhibit, Paginated, ZoneDetail } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
+import { Exhibit, Paginated, Zone, ZoneDetail } from '@/lib/types';
 
 export default function ZoneDetailPage() {
+  const { t } = useI18n();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -44,42 +48,53 @@ export default function ZoneDetailPage() {
     void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   };
 
+  const saveZone = useMutation({
+    mutationFn: (body: { name: string; floor?: string | null; description?: string | null }) =>
+      apiFetch<Zone>(`/admin/zones/${zoneId}`, { method: 'PATCH', body }),
+    onSuccess: () => {
+      toast.success(t('zoneUpdated'));
+      invalidate();
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('zoneUpdateError')),
+  });
+
   const setCurrent = useMutation({
     mutationFn: (exhibitId: string) =>
       apiFetch(`/admin/zones/${zoneId}/current-exhibit`, { method: 'PUT', body: { exhibitId } }),
     onSuccess: () => {
-      toast.success('This zone now shows the selected exhibit. BLE and QR follow immediately.');
+      toast.success(t('exhibitSet'));
       setPicked('');
       invalidate();
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : 'Could not change the exhibit.'),
+      toast.error(error instanceof ApiError ? error.message : t('exhibitChangeError')),
   });
 
   const clearCurrent = useMutation({
     mutationFn: () => apiFetch(`/admin/zones/${zoneId}/current-exhibit`, { method: 'DELETE' }),
     onSuccess: () => {
-      toast.success('Zone emptied. Visitors will see the "nothing on display" state.');
+      toast.success(t('zoneEmptied'));
       invalidate();
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : 'Could not empty the zone.'),
+      toast.error(error instanceof ApiError ? error.message : t('zoneEmptyError')),
   });
 
   const removeZone = useMutation({
     mutationFn: () => apiFetch<void>(`/admin/zones/${zoneId}`, { method: 'DELETE' }),
     onSuccess: () => {
-      toast.success('Zone deleted.');
+      toast.success(t('zoneDeleted'));
       void queryClient.invalidateQueries({ queryKey: ['zones'] });
       router.push('/zones');
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : 'Could not delete the zone.'),
+      toast.error(error instanceof ApiError ? error.message : t('zoneDeleteError')),
   });
 
   if (zoneQuery.isLoading) return <Skeleton className="h-96" />;
   if (zoneQuery.error || !zoneQuery.data) {
-    return <p className="text-sm text-destructive">Zone not found.</p>;
+    return <p className="text-sm text-destructive">{t('zoneNotFound')}</p>;
   }
 
   const zone = zoneQuery.data;
@@ -87,6 +102,16 @@ export default function ZoneDetailPage() {
   const publishable = (exhibitsQuery.data?.items ?? []).filter(
     (exhibit) => exhibit.status !== 'ARCHIVED',
   );
+
+  function handleSaveZone(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    saveZone.mutate({
+      name: String(form.get('name') ?? ''),
+      floor: String(form.get('floor') ?? '') || null,
+      description: String(form.get('description') ?? '') || null,
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -96,34 +121,65 @@ export default function ZoneDetailPage() {
             className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
             href="/zones"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> All zones
+            <ArrowLeft className="h-3.5 w-3.5" /> {t('allZonesLink')}
           </Link>
           <h1 className="text-2xl font-semibold">{zone.code}</h1>
           <p className="text-sm text-muted-foreground">
             {zone.name}
-            {zone.floor ? ` · Floor ${zone.floor}` : ''}
+            {zone.floor ? ` · ${t('floor')} ${zone.floor}` : ''}
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => {
-            if (window.confirm(`Delete ${zone.code}? Its display history is removed too.`)) {
+            if (window.confirm(t('deleteZoneConfirm', { code: zone.code }))) {
               removeZone.mutate();
             }
           }}
         >
           <Trash2 className="h-4 w-4" />
-          Delete zone
+          {t('deleteZone')}
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('zoneSettings')}</CardTitle>
+          <CardDescription>{t('zoneSettingsHint')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSaveZone}>
+            <div className="space-y-2">
+              <Label htmlFor="name">{t('name')}</Label>
+              <Input id="name" name="name" defaultValue={zone.name} required key={zone.updatedAt} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="floor">{t('floor')}</Label>
+              <Input id="floor" name="floor" defaultValue={zone.floor ?? ''} key={zone.updatedAt} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="description">{t('description')}</Label>
+              <Textarea
+                id="description"
+                name="description"
+                defaultValue={zone.description ?? ''}
+                key={zone.updatedAt}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Button type="submit" disabled={saveZone.isPending}>
+                {saveZone.isPending ? t('saving') : t('saveZone')}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>What is in this room</CardTitle>
-            <CardDescription>
-              Exactly what the BLE and QR endpoints resolve for this zone right now.
-            </CardDescription>
+            <CardTitle>{t('whatIsInRoom')}</CardTitle>
+            <CardDescription>{t('whatIsInRoomHint')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {current ? (
@@ -135,29 +191,25 @@ export default function ZoneDetailPage() {
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{current.exhibit.code}</p>
-                <p className="mt-2 text-sm">On display since {formatDate(current.activeFrom)}</p>
+                <p className="mt-2 text-sm">
+                  {t('onDisplaySince', { date: formatDate(current.activeFrom) })}
+                </p>
                 {zone.currentReason === 'EXHIBIT_NOT_PUBLISHED' ? (
-                  <p className="mt-2 text-sm text-amber-700">
-                    Assigned, but not published &mdash; visitors will see &ldquo;nothing on
-                    display&rdquo;.
-                  </p>
+                  <p className="mt-2 text-sm text-amber-700">{t('assignedNotPublished')}</p>
                 ) : null}
                 <Link
                   className="mt-3 inline-block text-sm underline"
                   href={`/exhibits/${current.exhibit.id}`}
                 >
-                  Open exhibit
+                  {t('openExhibit')}
                 </Link>
               </div>
             ) : (
-              <EmptyState
-                title="Nothing on display here"
-                description="Pick an exhibit below so visitors in this zone receive content."
-              />
+              <EmptyState title={t('nothingOnDisplay')} description={t('nothingOnDisplayHint')} />
             )}
 
             <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
-              <Label htmlFor="exhibit">Change the exhibit in this room</Label>
+              <Label htmlFor="exhibit">{t('changeExhibit')}</Label>
               <div className="flex flex-wrap gap-2">
                 <select
                   id="exhibit"
@@ -165,7 +217,7 @@ export default function ZoneDetailPage() {
                   value={picked}
                   onChange={(event) => setPicked(event.target.value)}
                 >
-                  <option value="">Select an exhibit…</option>
+                  <option value="">{t('selectExhibit')}</option>
                   {publishable.map((exhibit) => (
                     <option key={exhibit.id} value={exhibit.id}>
                       {exhibit.code} — {exhibit.defaultTitle}
@@ -177,31 +229,29 @@ export default function ZoneDetailPage() {
                   disabled={!picked || setCurrent.isPending}
                   onClick={() => setCurrent.mutate(picked)}
                 >
-                  {setCurrent.isPending ? 'Saving…' : 'Set as current'}
+                  {setCurrent.isPending ? t('saving') : t('setAsCurrent')}
                 </Button>
                 {current ? (
                   <Button
                     variant="outline"
                     disabled={clearCurrent.isPending}
                     onClick={() => {
-                      if (window.confirm('Empty this zone? Visitors will see an empty state.')) {
+                      if (window.confirm(t('emptyZoneConfirm'))) {
                         clearCurrent.mutate();
                       }
                     }}
                   >
-                    Empty zone
+                    {t('emptyZone')}
                   </Button>
                 ) : null}
               </div>
-              <p className="text-xs text-muted-foreground">
-                The beacon and the printed QR code are untouched &mdash; only the content changes.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('beaconQrUntouched')}</p>
             </div>
 
             <div>
-              <h3 className="mb-2 text-sm font-semibold">Previously in this room</h3>
+              <h3 className="mb-2 text-sm font-semibold">{t('previouslyInRoom')}</h3>
               {zone.history.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No earlier exhibit recorded.</p>
+                <p className="text-sm text-muted-foreground">{t('noEarlierExhibit')}</p>
               ) : (
                 <ul className="space-y-2">
                   {zone.history.map((assignment) => (
@@ -221,8 +271,8 @@ export default function ZoneDetailPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Beacons</CardTitle>
-              <CardDescription>Hardware installed in this zone.</CardDescription>
+              <CardTitle>{t('beaconsInZone')}</CardTitle>
+              <CardDescription>{t('beaconsInZoneHint')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               {zone.beacons?.length ? (
@@ -231,7 +281,7 @@ export default function ZoneDetailPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{beacon.identifier}</span>
                       <Badge variant={beacon.enabled ? 'success' : 'destructive'}>
-                        {beacon.enabled ? 'enabled' : 'disabled'}
+                        {beacon.enabled ? t('enabled') : t('disabled')}
                       </Badge>
                     </div>
                     <p className="text-muted-foreground">{beacon.name}</p>
@@ -256,19 +306,15 @@ export default function ZoneDetailPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No beacon installed. Visitors can still reach this zone through its QR code.
-                </p>
+                <p className="text-sm text-muted-foreground">{t('noBeaconInstalled')}</p>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>QR code</CardTitle>
-              <CardDescription>
-                Print once &mdash; it never changes when the exhibit does.
-              </CardDescription>
+              <CardTitle>{t('qrCode')}</CardTitle>
+              <CardDescription>{t('qrHint')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {qrQuery.data ? (
@@ -284,7 +330,7 @@ export default function ZoneDetailPage() {
                   </p>
                   <Button asChild variant="outline" className="w-full">
                     <a href={qrQuery.data.dataUrl} download={`${zone.code}-qr.png`}>
-                      Download PNG
+                      {t('downloadPng')}
                     </a>
                   </Button>
                 </>
@@ -296,7 +342,7 @@ export default function ZoneDetailPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Last checked</CardTitle>
+              <CardTitle className="text-base">{t('lastChecked')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">{formatDateTime(zone.updatedAt)}</p>

@@ -133,3 +133,16 @@ export interface AdminProfile {
   email: string;
   name: string;
 }
+
+export interface LocalizeLanguageResult {
+  languageCode: string;
+  translated: boolean;
+  audioGenerated: boolean;
+  skippedReason?: string;
+}
+
+export interface LocalizeExhibitResult {
+  sourceLanguage: string;
+  generated: LocalizeLanguageResult[];
+  warning?: string;
+}

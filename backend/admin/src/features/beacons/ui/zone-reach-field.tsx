@@ -2,36 +2,27 @@
 
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/lib/i18n';
 
-/** The floor of a usable reading, and the point of "almost touching it". */
 const WEAKEST = -100;
 const STRONGEST = -30;
 
-/**
- * Plain-language reading of a dBm threshold. Deliberately qualitative: the
- * same value covers a different distance in a small room, a glass-cased hall,
- * or a crowd, so a figure in metres would promise precision that does not exist.
- */
-function describe(dbm: number): string {
-  if (dbm >= -50) return 'Right at the exhibit';
-  if (dbm >= -65) return 'A few steps away';
-  if (dbm >= -80) return 'A small room';
-  return 'Wide — neighbouring zones may overlap';
-}
-
-/**
- * Sets how far a beacon's zone reaches, as the minimum smoothed RSSI the phone
- * will still count as "inside". Null hands the decision back to the app's
- * global default.
- */
 export function ZoneReachField({ defaultValue }: { defaultValue: number | null }) {
+  const { t } = useI18n();
   const [value, setValue] = useState<number>(defaultValue ?? -80);
   const [useDefault, setUseDefault] = useState(defaultValue === null);
+
+  function describe(dbm: number): string {
+    if (dbm >= -50) return t('reachAtExhibit');
+    if (dbm >= -65) return t('reachFewSteps');
+    if (dbm >= -80) return t('reachSmallRoom');
+    return t('reachWide');
+  }
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor="minRssi">Zone reach</Label>
+        <Label htmlFor="minRssi">{t('zoneReach')}</Label>
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input
             type="checkbox"
@@ -39,12 +30,10 @@ export function ZoneReachField({ defaultValue }: { defaultValue: number | null }
             onChange={(event) => setUseDefault(event.target.checked)}
             className="h-3.5 w-3.5"
           />
-          Use museum default
+          {t('useMuseumDefault')}
         </label>
       </div>
 
-      {/* Submitted only when a beacon-specific value is set; an empty string
-          clears the column back to null on the API side. */}
       <input type="hidden" name="minRssi" value={useDefault ? '' : String(value)} />
 
       <input
@@ -61,16 +50,12 @@ export function ZoneReachField({ defaultValue }: { defaultValue: number | null }
 
       <div className="flex items-center justify-between text-xs">
         <span className={useDefault ? 'text-muted-foreground' : 'font-medium'}>
-          {useDefault ? 'Following the museum default' : `${value} dBm · ${describe(value)}`}
+          {useDefault ? t('followingDefault') : `${value} dBm · ${describe(value)}`}
         </span>
-        <span className="text-muted-foreground">wider ← → tighter</span>
+        <span className="text-muted-foreground">{t('widerTighter')}</span>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        A signal threshold, not a radius. The same value covers a different distance in a small
-        room, behind glass, or in a crowd — walk the zone and adjust rather than converting to
-        metres.
-      </p>
+      <p className="text-xs text-muted-foreground">{t('reachHint')}</p>
     </div>
   );
 }

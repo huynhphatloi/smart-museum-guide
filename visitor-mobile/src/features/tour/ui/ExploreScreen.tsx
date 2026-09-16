@@ -41,7 +41,7 @@ export function ExploreScreen() {
     <Screen>
       <Row style={styles.header}>
         <View style={styles.headerCopy}>
-          <Eyebrow>{zoneName ? t(language, 'currentZone') : 'Museum collection'}</Eyebrow>
+          <Eyebrow>{zoneName ? t(language, 'currentZone') : t(language, 'museumCollection')}</Eyebrow>
           <Title>{zoneName ?? t(language, 'explore')}</Title>
         </View>
         <MuseumMark compact />

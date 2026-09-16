@@ -18,29 +18,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { ScannedBeacon } from '@/lib/ble-scan';
+import { useI18n } from '@/lib/i18n';
 import { Beacon, BeaconProtocol, Zone } from '@/lib/types';
-
-const PROTOCOLS: { value: BeaconProtocol; label: string; hint: string }[] = [
-  {
-    value: 'EDDYSTONE_UID',
-    label: 'Eddystone UID (recommended)',
-    hint: 'Read from BLE service data 0xFEAA — works the same on Android and iOS.',
-  },
-  {
-    value: 'IBEACON',
-    label: 'iBeacon',
-    hint: 'Read from manufacturer data on Android; on iOS this is the Core Location identity.',
-  },
-  { value: 'GENERIC', label: 'Other', hint: 'Any beacon carrying one of the identities below.' },
-];
 
 const DEFAULT_NAMESPACE_HINT = 'a1b2c3d4e5f607182930';
 
-/**
- * Create and edit share one form: the fields, the validation hints and the
- * scan panel are identical, and only the request differs. Keeping them apart
- * is how the two drift.
- */
 export function BeaconFormDialog({
   open,
   onOpenChange,
@@ -50,13 +32,23 @@ export function BeaconFormDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   zones: Zone[];
-  /** Present when editing; absent when registering a new beacon. */
   beacon?: Beacon | null;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const editing = Boolean(beacon);
   const [protocol, setProtocol] = useState<BeaconProtocol>(beacon?.protocol ?? 'EDDYSTONE_UID');
   const formRef = useRef<HTMLFormElement>(null);
+
+  const protocols: { value: BeaconProtocol; label: string; hint: string }[] = [
+    {
+      value: 'EDDYSTONE_UID',
+      label: t('protocolEddystone'),
+      hint: t('protocolEddystoneHint'),
+    },
+    { value: 'IBEACON', label: t('protocolIbeacon'), hint: t('protocolIbeaconHint') },
+    { value: 'GENERIC', label: t('protocolOther'), hint: t('protocolOtherHint') },
+  ];
 
   const save = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -64,19 +56,19 @@ export function BeaconFormDialog({
         ? apiFetch<Beacon>(`/admin/beacons/${beacon.id}`, { method: 'PATCH', body })
         : apiFetch<Beacon>('/admin/beacons', { method: 'POST', body }),
     onSuccess: (saved) => {
-      toast.success(`Beacon ${saved.identifier} ${editing ? 'updated' : 'registered'}.`);
+      toast.success(
+        t('beaconSaved', {
+          id: saved.identifier,
+          action: editing ? t('beaconUpdatedAction') : t('beaconRegisteredAction'),
+        }),
+      );
       onOpenChange(false);
       void queryClient.invalidateQueries({ queryKey: ['beacons'] });
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : 'Could not save the beacon.'),
+      toast.error(error instanceof ApiError ? error.message : t('beaconSaveError')),
   });
 
-  /**
-   * Copies a scanned beacon's identity into the form. The inputs are
-   * uncontrolled, so they are written directly rather than mirrored in state -
-   * that keeps whatever the operator has already typed into identifier / name.
-   */
   function applyScannedBeacon(scanned: ScannedBeacon) {
     setProtocol(scanned.protocol);
 
@@ -95,7 +87,7 @@ export function BeaconFormDialog({
     set('minor', scanned.minor);
     set('txPower', scanned.txPower);
 
-    toast.success('Identity filled in from the scan.');
+    toast.success(t('identityFilled'));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -107,7 +99,6 @@ export function BeaconFormDialog({
       const raw = text(key);
       return raw ? Number(raw) : undefined;
     };
-    /** Editing must be able to clear a value, which undefined cannot express. */
     const nullableNumber = (key: string) => {
       const raw = text(key);
       if (raw) return Number(raw);
@@ -135,42 +126,43 @@ export function BeaconFormDialog({
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {editing ? `Beacon settings · ${beacon?.identifier}` : 'Register a beacon'}
+            {editing
+              ? t('beaconSettingsTitle', { id: beacon?.identifier ?? '' })
+              : t('registerBeacon')}
           </DialogTitle>
-          <DialogDescription>
-            Museum staff manage the hardware identity, assigned zone and detection reach here.
-            Visitor devices only consume these published values.
-          </DialogDescription>
+          <DialogDescription>{t('beaconFormHint')}</DialogDescription>
         </DialogHeader>
 
-        <form className="space-y-4" onSubmit={handleSubmit} ref={formRef}>
+        <form className="space-y-4" onSubmit={handleSubmit} ref={formRef} autoComplete="off">
           <BeaconScanner onSelect={applyScannedBeacon} />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="identifier">Identifier</Label>
+              <Label htmlFor="identifier">{t('identifier')}</Label>
               <Input
                 id="identifier"
                 name="identifier"
                 placeholder="BEACON_A01"
                 defaultValue={beacon?.identifier ?? ''}
+                autoComplete="off"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t('name')}</Label>
               <Input
                 id="name"
                 name="name"
                 placeholder="Entrance A01"
                 defaultValue={beacon?.name ?? ''}
+                autoComplete="off"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="zoneId">Zone</Label>
+            <Label htmlFor="zoneId">{t('zone')}</Label>
             <select
               id="zoneId"
               name="zoneId"
@@ -187,73 +179,72 @@ export function BeaconFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="protocol">Protocol</Label>
+            <Label htmlFor="protocol">{t('protocol')}</Label>
             <select
               id="protocol"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={protocol}
               onChange={(event) => setProtocol(event.target.value as BeaconProtocol)}
             >
-              {PROTOCOLS.map((option) => (
+              {protocols.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
             <p className="text-xs text-muted-foreground">
-              {PROTOCOLS.find((option) => option.value === protocol)?.hint}
+              {protocols.find((option) => option.value === protocol)?.hint}
             </p>
           </div>
 
           {protocol !== 'IBEACON' ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="namespaceId">Eddystone namespace</Label>
+                <Label htmlFor="namespaceId">{t('eddystoneNamespace')}</Label>
                 <Input
                   id="namespaceId"
                   name="namespaceId"
                   placeholder={DEFAULT_NAMESPACE_HINT}
                   defaultValue={beacon?.namespaceId ?? ''}
                   maxLength={20}
+                  autoComplete="off"
                 />
-                <p className="text-xs text-muted-foreground">20 hex characters</p>
+                <p className="text-xs text-muted-foreground">{t('hex20')}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="instanceId">Eddystone instance</Label>
+                <Label htmlFor="instanceId">{t('eddystoneInstance')}</Label>
                 <Input
                   id="instanceId"
                   name="instanceId"
                   placeholder="000000000001"
                   defaultValue={beacon?.instanceId ?? ''}
                   maxLength={12}
+                  autoComplete="off"
                 />
-                <p className="text-xs text-muted-foreground">12 hex characters</p>
+                <p className="text-xs text-muted-foreground">{t('hex12')}</p>
               </div>
             </div>
           ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="uuid">
-              iBeacon proximity UUID{protocol === 'EDDYSTONE_UID' ? ' (optional)' : ''}
+              {protocol === 'EDDYSTONE_UID' ? t('iBeaconUuidOptional') : t('iBeaconUuid')}
             </Label>
             <Input
               id="uuid"
               name="uuid"
               placeholder="f7826da6-4fa2-4e98-8024-bc5b71e0893e"
               defaultValue={beacon?.uuid ?? ''}
+              autoComplete="off"
             />
             {protocol === 'EDDYSTONE_UID' ? (
-              <p className="text-xs text-muted-foreground">
-                A Minew i3 can advertise both frames. Filling this in also enables the iOS Core
-                Location path later. Give each beacon a distinct major/minor — the triple must be
-                unique.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('minewHint')}</p>
             ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="major">Major</Label>
+              <Label htmlFor="major">{t('major')}</Label>
               <Input
                 id="major"
                 name="major"
@@ -264,7 +255,7 @@ export function BeaconFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="minor">Minor</Label>
+              <Label htmlFor="minor">{t('minor')}</Label>
               <Input
                 id="minor"
                 name="minor"
@@ -278,7 +269,7 @@ export function BeaconFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="txPower">Tx power (dBm)</Label>
+              <Label htmlFor="txPower">{t('txPower')}</Label>
               <Input
                 id="txPower"
                 name="txPower"
@@ -288,10 +279,10 @@ export function BeaconFormDialog({
                 placeholder="-8"
                 defaultValue={beacon?.txPower ?? ''}
               />
-              <p className="text-xs text-muted-foreground">Turn it down for tight zones.</p>
+              <p className="text-xs text-muted-foreground">{t('txPowerHint')}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="advertisingIntervalMs">Advertising interval (ms)</Label>
+              <Label htmlFor="advertisingIntervalMs">{t('advInterval')}</Label>
               <Input
                 id="advertisingIntervalMs"
                 name="advertisingIntervalMs"
@@ -301,7 +292,7 @@ export function BeaconFormDialog({
                 placeholder="500"
                 defaultValue={beacon?.advertisingIntervalMs ?? ''}
               />
-              <p className="text-xs text-muted-foreground">~500 ms suits a 4 s RSSI window.</p>
+              <p className="text-xs text-muted-foreground">{t('advIntervalHint')}</p>
             </div>
           </div>
 
@@ -309,10 +300,10 @@ export function BeaconFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Register beacon'}
+              {save.isPending ? t('saving') : editing ? t('saveChanges') : t('registerBeaconBtn')}
             </Button>
           </DialogFooter>
         </form>

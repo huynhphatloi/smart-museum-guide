@@ -1,14 +1,19 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { t } from '../../../shared/i18n';
-import { resolveInitialLanguage } from '../../../shared/i18n/language';
+import { rememberLanguage, resolveInitialLanguage } from '../../../shared/i18n/language';
+
+const UI_LANGUAGES = ['vi', 'en'] as const;
 
 export function HomePage() {
   const navigate = useNavigate();
-  const [language] = useState(() =>
-    resolveInitialLanguage(['vi', 'en', 'ja', 'ko', 'zh', 'fr'], 'vi'),
-  );
+  const [language, setLanguage] = useState(() => resolveInitialLanguage([...UI_LANGUAGES], 'vi'));
   const [code, setCode] = useState('');
+
+  function handleLanguageChange(next: string) {
+    setLanguage(next);
+    rememberLanguage(next);
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,7 +22,24 @@ export function HomePage() {
   }
 
   return (
-    <main className="mx-auto grid min-h-[100dvh] max-w-6xl items-center gap-14 px-6 py-12 md:grid-cols-[0.8fr_1.2fr] md:px-10">
+    <main className="relative mx-auto grid min-h-[100dvh] max-w-6xl items-center gap-14 px-6 py-12 md:grid-cols-[0.8fr_1.2fr] md:px-10">
+      <div className="absolute right-6 top-6 flex overflow-hidden rounded-md border border-museum-line text-xs font-semibold">
+        {UI_LANGUAGES.map((codeOption) => (
+          <button
+            key={codeOption}
+            type="button"
+            onClick={() => handleLanguageChange(codeOption)}
+            className={`px-2.5 py-1 uppercase tracking-wide ${
+              language === codeOption
+                ? 'bg-museum-deep text-white'
+                : 'text-museum-muted hover:text-museum-ink'
+            }`}
+          >
+            {codeOption}
+          </button>
+        ))}
+      </div>
+
       <div className="relative mx-auto hidden h-[28rem] w-full max-w-sm items-end overflow-hidden rounded-t-[12rem] bg-museum-deep p-8 md:flex">
         <div className="absolute inset-8 rounded-t-[10rem] border border-white/20" />
         <div className="absolute left-1/2 top-1/2 h-36 w-28 -translate-x-1/2 -translate-y-1/2 rounded-t-[4rem] bg-museum-brass" />
@@ -26,7 +48,7 @@ export function HomePage() {
 
       <section className="max-w-xl">
         <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-museum-accent">
-          Smart museum companion
+          {t(language, 'companion')}
         </p>
         <h1 className="max-w-lg text-balance font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.035em] sm:text-6xl">
           {t(language, 'appName')}

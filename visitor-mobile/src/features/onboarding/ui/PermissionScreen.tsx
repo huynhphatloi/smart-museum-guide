@@ -28,7 +28,7 @@ export function PermissionScreen({ navigation }: Props) {
         <MuseumMark compact />
       </View>
 
-      <Eyebrow>Automatic guide</Eyebrow>
+      <Eyebrow>{t(language, 'automaticGuide')}</Eyebrow>
       <Title>{t(language, 'permissionTitle')}</Title>
       <Body>{t(language, 'permissionBody')}</Body>
 
@@ -39,11 +39,9 @@ export function PermissionScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.privacy}>
-        <Text style={styles.privacyLabel}>PRIVACY</Text>
+        <Text style={styles.privacyLabel}>{t(language, 'privacy')}</Text>
         <Text style={styles.privacyText}>
-          {Platform.OS === 'android'
-            ? 'Nearby-device access finds museum beacons. Signal readings stay on this phone.'
-            : 'Bluetooth access finds museum beacons. Signal readings stay on this phone.'}
+          {t(language, Platform.OS === 'android' ? 'privacyAndroid' : 'privacyIos')}
         </Text>
       </View>
 

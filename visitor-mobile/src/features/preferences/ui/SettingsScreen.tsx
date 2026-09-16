@@ -13,7 +13,7 @@ export function SettingsScreen() {
     <Screen>
       <Row style={styles.header}>
         <View style={styles.headerCopy}>
-          <Eyebrow>Visitor preferences</Eyebrow>
+          <Eyebrow>{t(language, 'visitorPreferences')}</Eyebrow>
           <Title>{t(language, 'settings')}</Title>
         </View>
         <MuseumMark compact />

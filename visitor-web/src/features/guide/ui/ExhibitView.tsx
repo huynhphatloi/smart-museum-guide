@@ -65,7 +65,7 @@ export function ExhibitView({ data, language }: Props) {
       {paragraphs.length > 0 ? (
         <section className="mt-16 border-t border-museum-line pt-8 md:ml-[calc(50%+1.75rem)] md:mt-24">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-museum-accent">
-            About this work
+            {t(language, 'aboutThisWork')}
           </p>
           <div className="prose-exhibit max-w-2xl font-serif">
             {paragraphs.map((paragraph, index) => (

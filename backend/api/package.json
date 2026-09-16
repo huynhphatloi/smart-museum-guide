@@ -7,6 +7,7 @@
     "build": "nest build",
     "scanner:build": "./tools/build.sh",
     "start": "nest start",
+    "prestart:dev": "npm run scanner:build",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,prisma}/**/*.ts\" --max-warnings 0",

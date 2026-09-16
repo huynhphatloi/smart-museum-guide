@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError, apiFetch, tokenStore } from '@/lib/api-client';
+import { LanguageToggle, useI18n } from '@/lib/i18n';
 import { AdminProfile } from '@/lib/types';
 
 interface LoginResponse {
@@ -18,6 +19,7 @@ interface LoginResponse {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [email, setEmail] = useState('admin@museum.local');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -32,10 +34,10 @@ export default function LoginPage() {
         anonymous: true,
       });
       tokenStore.set(result.accessToken, result.admin);
-      toast.success(`Welcome back, ${result.admin.name}`);
+      toast.success(t('welcomeBack', { name: result.admin.name }));
       router.replace('/dashboard');
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Login failed.');
+      toast.error(error instanceof ApiError ? error.message : t('loginFailed'));
     } finally {
       setPending(false);
     }
@@ -43,15 +45,18 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
+      <div className="absolute right-6 top-6">
+        <LanguageToggle variant="light" />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Museum Guide CMS</CardTitle>
-          <CardDescription>Sign in with your museum staff account.</CardDescription>
+          <CardTitle>{t('loginTitle')}</CardTitle>
+          <CardDescription>{t('loginDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -62,7 +67,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -73,11 +78,9 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? 'Signing in...' : 'Sign in'}
+              {pending ? t('signingIn') : t('signIn')}
             </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              Development seed account: admin@museum.local
-            </p>
+            <p className="text-center text-xs text-muted-foreground">{t('seedHint')}</p>
           </form>
         </CardContent>
       </Card>

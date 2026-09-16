@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { execFile } from 'child_process';
 import { access, constants } from 'fs/promises';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { platform } from 'os';
 import { promisify } from 'util';
 import { BleScanUnavailableException } from '../common/errors/app.exception';
@@ -10,10 +10,23 @@ import { RawAdvertisement, ScannedBeacon, scannedBeaconsFrom } from './advertise
 
 const run = promisify(execFile);
 
-/** Where `tools/build.sh` puts the native helper. */
-const SCANNER_PATH = join(process.cwd(), 'tools', 'beacon-scan');
-
 const BUILD_HINT = 'Build it once with: npm run scanner:build';
+
+function scannerCandidates(): string[] {
+  return [
+    join(process.cwd(), 'tools', 'beacon-scan'),
+    join(process.cwd(), 'api', 'tools', 'beacon-scan'),
+    join(__dirname, '..', '..', 'tools', 'beacon-scan'),
+  ];
+}
+
+function buildScriptCandidates(): string[] {
+  return [
+    join(process.cwd(), 'tools', 'build.sh'),
+    join(process.cwd(), 'api', 'tools', 'build.sh'),
+    join(__dirname, '..', '..', 'tools', 'build.sh'),
+  ];
+}
 
 /**
  * macOS attributes Bluetooth permission to the app that launched the process
@@ -59,16 +72,12 @@ export class BeaconScanService {
       );
     }
 
-    try {
-      await access(SCANNER_PATH, constants.X_OK);
-    } catch {
-      throw new BleScanUnavailableException(`The beacon scanner is not built. ${BUILD_HINT}`);
-    }
+    const scannerPath = await this.ensureScanner();
 
     let stdout: string;
     try {
       // Allow the helper its full scan window plus room to start and print.
-      ({ stdout } = await run(SCANNER_PATH, [String(duration)], {
+      ({ stdout } = await run(scannerPath, [String(duration)], {
         timeout: (duration + 10) * 1000,
         maxBuffer: 4 * 1024 * 1024,
       }));
@@ -83,6 +92,56 @@ export class BeaconScanService {
   }
 
   // -------------------------------------------------------------------------
+
+  private async findExisting(
+    paths: string[],
+    mode: number = constants.F_OK,
+  ): Promise<string | null> {
+    const seen = new Set<string>();
+    for (const candidate of paths) {
+      if (seen.has(candidate)) continue;
+      seen.add(candidate);
+      try {
+        await access(candidate, mode);
+        return candidate;
+      } catch {
+        // Try the next location - cwd differs between `npm run dev:api` and a
+        // compiled start from dist/.
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Resolves the native helper, compiling it on first use so staff are not
+   * asked to run a developer command from the CMS.
+   */
+  private async ensureScanner(): Promise<string> {
+    const existing = await this.findExisting(scannerCandidates(), constants.X_OK);
+    if (existing) return existing;
+
+    const buildScript = await this.findExisting(buildScriptCandidates());
+    if (!buildScript) {
+      throw new BleScanUnavailableException(`The beacon scanner is not built. ${BUILD_HINT}`);
+    }
+
+    this.logger.log('Beacon scanner missing — building the native helper.');
+    try {
+      await run('bash', [buildScript], {
+        cwd: dirname(buildScript),
+        timeout: 90_000,
+      });
+    } catch (error) {
+      this.logger.error(`scanner build failed: ${String(error)}`);
+      throw new BleScanUnavailableException(`The beacon scanner is not built. ${BUILD_HINT}`);
+    }
+
+    const built = await this.findExisting(scannerCandidates(), constants.X_OK);
+    if (!built) {
+      throw new BleScanUnavailableException(`The beacon scanner is not built. ${BUILD_HINT}`);
+    }
+    return built;
+  }
 
   private parseOutput(stdout: string): ScannerOutput {
     const line = stdout.trim().split('\n').pop() ?? '';
