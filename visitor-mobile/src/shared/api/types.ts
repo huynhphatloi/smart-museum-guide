@@ -39,7 +39,18 @@ export interface ActiveExhibitResponse {
   resolvedAt: string;
 }
 
+export interface LanguageOption {
+  code: string;
+  /** English name. */
+  name: string;
+  /** Name in the language itself, shown in the language list. */
+  nativeName: string;
+}
+
 export interface LanguagesResponse {
   default: string;
   supported: string[];
+  /** Display names; absent on servers older than the AI service language list. */
+  languages?: LanguageOption[];
+  source?: 'ai-service' | 'config';
 }

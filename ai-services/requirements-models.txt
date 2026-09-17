@@ -1,0 +1,7 @@
+# Real models (GPU runtime, e.g. Google Colab). Colab already ships torch.
+-r requirements.txt
+transformers>=4.57
+accelerate>=1.0
+bitsandbytes>=0.45
+voxcpm>=2.0
+omnivoice>=0.1

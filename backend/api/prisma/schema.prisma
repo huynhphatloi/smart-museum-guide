@@ -31,6 +31,19 @@ enum MediaType {
   VIDEO
 }
 
+/// Lifecycle of one translate-and-narrate task handled by the AI service
+/// (`ai-services/`).
+enum LocalizationStatus {
+  /// Waiting: not handed to an AI service yet, or queued inside it.
+  QUEUED
+  /// The AI service is translating or synthesising this language.
+  PROCESSING
+  COMPLETED
+  FAILED
+  /// A newer request for the same exhibit language replaced this task.
+  SUPERSEDED
+}
+
 /// How a beacon advertises its identity.
 ///
 /// EDDYSTONE_UID is the primary protocol for this project: it is carried in BLE
@@ -145,9 +158,10 @@ model Exhibit {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  translations ExhibitTranslation[]
-  media        ExhibitMedia[]
-  assignments  ExhibitAssignment[]
+  translations      ExhibitTranslation[]
+  media             ExhibitMedia[]
+  assignments       ExhibitAssignment[]
+  localizationTasks LocalizationTask[]
 
   @@index([status])
   @@map("exhibits")
@@ -165,6 +179,10 @@ model ExhibitTranslation {
   description      String?
   /// Narration audio for this language.
   audioUrl         String?
+  /// Hash of the primary-language copy this row was generated from. Null for
+  /// copy that was never produced by the AI service (seed data, manual edits),
+  /// which the next localization request therefore regenerates.
+  sourceHash       String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -173,6 +191,55 @@ model ExhibitTranslation {
   @@unique([exhibitId, languageCode])
   @@index([languageCode])
   @@map("exhibit_translations")
+}
+
+/// One "translate the primary copy into a language, then narrate it" request.
+/// The newest row per (exhibitId, languageCode) is the status the CMS shows;
+/// older rows are kept as history.
+model LocalizationTask {
+  id               String             @id @default(uuid())
+  exhibitId        String
+  languageCode     String
+  sourceLanguage   String
+  /// Hash of the primary copy at request time - see ExhibitTranslation.sourceHash.
+  sourceHash       String
+  status           LocalizationStatus @default(QUEUED)
+  /// "translating" or "synthesizing" while PROCESSING.
+  stage            String?
+  error            String?
+  /// Instance id of the AI service the task was handed to. A different live
+  /// instance means that queue is gone (e.g. the Colab runtime restarted).
+  dispatchedTo     String?
+  dispatchedAt     DateTime?
+  completedAt      DateTime?
+  /// Narration file produced by this task.
+  audioUrl         String?
+  translationModel String?
+  ttsModel         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  exhibit Exhibit @relation(fields: [exhibitId], references: [id], onDelete: Cascade)
+
+  @@index([exhibitId, languageCode, createdAt])
+  @@index([status])
+  @@map("localization_tasks")
+}
+
+/// What the AI service reported about itself in its last heartbeat that changed
+/// something. A single row (id "default"): it outlives API restarts and Colab
+/// downtime, so the CMS and the visitor apps keep offering the same languages.
+model AiServiceProfile {
+  id               String   @id @default("default")
+  /// Language codes both of its models cover - the languages the museum offers.
+  languages        String[]
+  translationModel String?
+  ttsModels        String[]
+  device           String?
+  lastSeenAt       DateTime
+  updatedAt        DateTime @updatedAt
+
+  @@map("ai_service_profile")
 }
 
 /// Images / audio / video attached to an exhibit (language neutral gallery).

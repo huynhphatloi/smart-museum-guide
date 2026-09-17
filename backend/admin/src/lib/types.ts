@@ -134,15 +134,73 @@ export interface AdminProfile {
   name: string;
 }
 
-export interface LocalizeLanguageResult {
-  languageCode: string;
-  translated: boolean;
-  audioGenerated: boolean;
-  skippedReason?: string;
+export interface LanguageOption {
+  code: string;
+  name: string;
+  nativeName: string;
 }
 
-export interface LocalizeExhibitResult {
+export interface LanguagesResponse {
+  default: string;
+  supported: string[];
+  languages: LanguageOption[];
+  /** `ai-service`: reported by the AI service. `config`: SUPPORTED_LANGUAGES fallback. */
+  source: 'ai-service' | 'config';
+}
+
+export type LocalizationStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SUPERSEDED';
+
+/** Per-language state shown in the CMS. NO_AUDIO: a translation exists without narration. */
+export type LanguageLocalizationStatus = Exclude<LocalizationStatus, 'SUPERSEDED'> | 'NO_AUDIO';
+
+export interface AiServiceStatus {
+  configured: boolean;
+  online: boolean;
+  lastSeenAt: string | null;
+  queueSize: number | null;
+  translationModel: string | null;
+  ttsModels: string[];
+  device: string | null;
+}
+
+export interface LanguageLocalization {
+  languageCode: string;
+  isSource: boolean;
+  status: LanguageLocalizationStatus;
+  /** `translating` or `synthesizing` while PROCESSING. */
+  stage: string | null;
+  error: string | null;
+  upToDate: boolean;
+  task: {
+    id: string;
+    status: LocalizationStatus;
+    sourceLanguage: string;
+    createdAt: string;
+    updatedAt: string;
+    dispatchedAt: string | null;
+    completedAt: string | null;
+    translationModel: string | null;
+    ttsModel: string | null;
+  } | null;
+  translation: {
+    id: string;
+    title: string;
+    shortDescription: string | null;
+    description: string | null;
+    audioUrl: string | null;
+    updatedAt: string;
+  } | null;
+}
+
+export interface ExhibitLocalization {
+  sourceLanguage: string | null;
+  languages: LanguageLocalization[];
+  aiService: AiServiceStatus;
+}
+
+export interface RequestLocalizationResult {
   sourceLanguage: string;
-  generated: LocalizeLanguageResult[];
-  warning?: string;
+  queued: string[];
+  skipped: { languageCode: string; reason: 'up_to_date' | 'in_progress' }[];
+  aiService: AiServiceStatus;
 }

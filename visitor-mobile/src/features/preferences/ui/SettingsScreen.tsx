@@ -7,7 +7,7 @@ import { useGuide } from '../../tour/model/GuideContext';
 import { LanguagePicker } from './LanguagePicker';
 
 export function SettingsScreen() {
-  const { language, supportedLanguages, setLanguage, autoGuide, setAutoGuide } = useGuide();
+  const { language, languageOptions, setLanguage, autoGuide, setAutoGuide } = useGuide();
 
   return (
     <Screen>
@@ -22,7 +22,13 @@ export function SettingsScreen() {
       <View style={styles.section}>
         <Subtitle>{t(language, 'language')}</Subtitle>
         <Body>{t(language, 'chooseLanguage')}</Body>
-        <LanguagePicker languages={supportedLanguages} value={language} onChange={setLanguage} />
+        <LanguagePicker
+          options={languageOptions}
+          value={language}
+          onChange={setLanguage}
+          title={t(language, 'chooseLanguage')}
+          closeLabel={t(language, 'close')}
+        />
       </View>
 
       <View style={styles.section}>

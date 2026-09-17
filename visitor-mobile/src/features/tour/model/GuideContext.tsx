@@ -9,7 +9,7 @@ import React, {
   useState,
 } from 'react';
 import { ApiError, api } from '../../../shared/api/client';
-import { ActiveExhibitResponse } from '../../../shared/api/types';
+import { ActiveExhibitResponse, LanguageOption } from '../../../shared/api/types';
 import { env } from '../../../shared/config/env';
 import { RegisteredBeacon, findZoneName } from '../../beacon-detection/model/beacon-registry';
 import { BeaconScanner, DEFAULT_SCANNER_CONFIG } from '../../beacon-detection/model/scanner';
@@ -19,9 +19,17 @@ import {
   simulatedBeaconsFromRegistry,
 } from '../../beacon-detection/model/sources/simulated-ble-source';
 import { DetectionSnapshot, ZoneConfirmedEvent } from '../../beacon-detection/model/types';
+import {
+  FALLBACK_LANGUAGE_CODES,
+  languageOptionsFrom,
+  optionsForCodes,
+  parseStoredLanguageOptions,
+} from '../../preferences/model/language-options';
 
 const STORAGE_LANGUAGE = 'museum.language';
 const STORAGE_AUTO_GUIDE = 'museum.autoGuide';
+/** Last language list from the server, so the picker stays complete when offline. */
+const STORAGE_LANGUAGE_OPTIONS = 'museum.languageOptions';
 
 export interface ZonePrompt {
   zoneCode: string;
@@ -32,7 +40,8 @@ export interface ZonePrompt {
 interface GuideContextValue {
   ready: boolean;
   language: string;
-  supportedLanguages: string[];
+  /** The languages the museum offers - those its AI service can translate and narrate. */
+  languageOptions: LanguageOption[];
   setLanguage: (language: string) => void;
 
   registryError: string | null;
@@ -79,7 +88,9 @@ export function useGuide(): GuideContextValue {
 export function GuideProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [language, setLanguageState] = useState(env.defaultLanguage);
-  const [supportedLanguages, setSupportedLanguages] = useState<string[]>(['vi', 'en']);
+  const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>(() =>
+    optionsForCodes(FALLBACK_LANGUAGE_CODES),
+  );
   const [autoGuide, setAutoGuideState] = useState(true);
 
   const [registry, setRegistry] = useState<RegisteredBeacon[]>([]);
@@ -120,19 +131,24 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     (async () => {
-      const [storedLanguage, storedAutoGuide] = await Promise.all([
+      const [storedLanguage, storedAutoGuide, storedOptions] = await Promise.all([
         AsyncStorage.getItem(STORAGE_LANGUAGE),
         AsyncStorage.getItem(STORAGE_AUTO_GUIDE),
+        AsyncStorage.getItem(STORAGE_LANGUAGE_OPTIONS),
       ]);
 
       if (cancelled) return;
       if (storedLanguage) setLanguageState(storedLanguage);
       if (storedAutoGuide !== null) setAutoGuideState(storedAutoGuide === 'true');
+      const cachedOptions = parseStoredLanguageOptions(storedOptions);
+      if (cachedOptions) setLanguageOptions(cachedOptions);
 
       try {
         const languages = await api.languages();
         if (!cancelled) {
-          setSupportedLanguages(languages.supported);
+          const options = languageOptionsFrom(languages);
+          setLanguageOptions(options);
+          void AsyncStorage.setItem(STORAGE_LANGUAGE_OPTIONS, JSON.stringify(options));
           if (!storedLanguage) setLanguageState(languages.default);
         }
       } catch {
@@ -306,7 +322,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ready,
       language,
-      supportedLanguages,
+      languageOptions,
       setLanguage,
       registryError,
       scanning,
@@ -327,7 +343,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     [
       ready,
       language,
-      supportedLanguages,
+      languageOptions,
       setLanguage,
       registryError,
       scanning,

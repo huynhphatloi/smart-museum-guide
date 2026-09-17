@@ -5,6 +5,7 @@ import { RootStackParamList } from '../../../application/navigation/types';
 import { languageLabel, t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
 import { Body, Button, Eyebrow, MuseumMark, Screen, Subtitle, Title } from '../../../shared/ui';
+import { optionsForCodes } from '../../preferences/model/language-options';
 import { LanguagePicker } from '../../preferences/ui/LanguagePicker';
 import { useGuide } from '../../tour/model/GuideContext';
 import { AudioNarration } from './AudioNarration';
@@ -15,7 +16,7 @@ export function ExhibitDetailScreen({ route }: Props) {
   const autoPlay = route.params?.autoPlay ?? false;
   const {
     language,
-    supportedLanguages,
+    languageOptions,
     setLanguage,
     exhibit,
     exhibitLoading,
@@ -118,11 +119,15 @@ export function ExhibitDetailScreen({ route }: Props) {
       <View style={styles.languageSection}>
         <Subtitle>{t(language, 'language')}</Subtitle>
         <LanguagePicker
-          languages={
-            supportedLanguages.length > 0 ? supportedLanguages : content.availableLanguages
+          options={
+            languageOptions.length > 0
+              ? languageOptions
+              : optionsForCodes(content.availableLanguages)
           }
           value={language}
           onChange={setLanguage}
+          title={t(language, 'chooseLanguage')}
+          closeLabel={t(language, 'close')}
         />
       </View>
     </Screen>

@@ -1,13 +1,14 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   BeaconDisabledException,
   BeaconNotFoundException,
   NoActiveExhibitException,
   ZoneNotFoundException,
 } from '../common/errors/app.exception';
-import { APP_CONFIG, AppConfig } from '../config/env.validation';
 import { ExhibitContentService } from '../exhibits/exhibit-content.service';
 import { ExhibitResolverService } from '../exhibits/exhibit-resolver.service';
+import { LanguageListSource, LanguageOption } from '../languages/language-catalog';
+import { OfferedLanguagesService } from '../languages/offered-languages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActiveExhibitResponse, PublicBeacon, PublicZone } from './public-guide.types';
 
@@ -25,11 +26,26 @@ export class PublicGuideService {
     private readonly prisma: PrismaService,
     private readonly resolver: ExhibitResolverService,
     private readonly content: ExhibitContentService,
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly offeredLanguages: OfferedLanguagesService,
   ) {}
 
-  languages(): { default: string; supported: string[] } {
-    return { default: this.config.defaultLanguage, supported: this.config.supportedLanguages };
+  /**
+   * The languages visitors can choose - the ones the AI service can produce.
+   * `supported` (codes only) is kept for clients that predate `languages`.
+   */
+  languages(): {
+    default: string;
+    supported: string[];
+    languages: LanguageOption[];
+    source: LanguageListSource;
+  } {
+    const offered = this.offeredLanguages.offered();
+    return {
+      default: offered.default,
+      supported: offered.languages.map((language) => language.code),
+      languages: offered.languages,
+      source: offered.source,
+    };
   }
 
   async getZoneByCode(zoneCode: string): Promise<PublicZone> {

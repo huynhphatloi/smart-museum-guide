@@ -351,6 +351,13 @@ export const LANGUAGE_LABELS: Record<string, string> = {
   hi: 'हिन्दी',
   tr: 'Türkçe',
   uk: 'Українська',
+  my: 'မြန်မာ',
+  he: 'עברית',
+  el: 'Ελληνικά',
+  da: 'Dansk',
+  no: 'Norsk',
+  fi: 'Suomi',
+  sw: 'Kiswahili',
 };
 
 export function languageLabel(code: string): string {

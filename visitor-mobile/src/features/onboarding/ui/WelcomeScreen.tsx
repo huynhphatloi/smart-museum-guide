@@ -11,7 +11,7 @@ import { Body, Button, Eyebrow, MuseumMark, Screen, Subtitle, Title } from '../.
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
 export function WelcomeScreen({ navigation }: Props) {
-  const { language, supportedLanguages, setLanguage, ready, registryError } = useGuide();
+  const { language, languageOptions, setLanguage, ready, registryError } = useGuide();
 
   return (
     <Screen style={styles.screen}>
@@ -29,7 +29,13 @@ export function WelcomeScreen({ navigation }: Props) {
 
       <View style={styles.languageSection}>
         <Subtitle>{t(language, 'chooseLanguage')}</Subtitle>
-        <LanguagePicker languages={supportedLanguages} value={language} onChange={setLanguage} />
+        <LanguagePicker
+          options={languageOptions}
+          value={language}
+          onChange={setLanguage}
+          title={t(language, 'chooseLanguage')}
+          closeLabel={t(language, 'close')}
+        />
       </View>
 
       {registryError ? (

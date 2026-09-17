@@ -12,13 +12,14 @@ QR code  ───┘
 
 ## Repository structure
 
-This is one Git repository containing three independently managed projects. There is no root Node.js workspace or root `node_modules` directory.
+This is one Git repository containing four independently managed projects. There is no root Node.js workspace or root `node_modules` directory.
 
-| Project           | Technology                          | Responsibility                               |
-| ----------------- | ----------------------------------- | -------------------------------------------- |
-| `backend/`        | NestJS, Next.js, Prisma, PostgreSQL | Public API and staff Admin panel             |
-| `visitor-mobile/` | React Native, Expo                  | BLE-guided mobile experience and QR scanning |
-| `visitor-web/`    | React, Vite                         | No-install QR visitor experience             |
+| Project           | Technology                          | Responsibility                                            |
+| ----------------- | ----------------------------------- | --------------------------------------------------------- |
+| `backend/`        | NestJS, Next.js, Prisma, PostgreSQL | Public API and staff Admin panel                          |
+| `ai-services/`    | Python, FastAPI, Google Colab       | Translation and narration (TTS) queue for exhibit content |
+| `visitor-mobile/` | React Native, Expo                  | BLE-guided mobile experience and QR scanning              |
+| `visitor-web/`    | React, Vite                         | No-install QR visitor experience                          |
 
 ```text
 smart-museum-guide/
@@ -27,6 +28,9 @@ smart-museum-guide/
 │   ├── admin/                Next.js staff Admin panel
 │   ├── package.json          Backend workspace commands
 │   └── package-lock.json     Backend dependency lockfile
+├── ai-services/
+│   ├── museum_ai/            Queue worker, translation and TTS models, webhooks
+│   └── notebooks/            Google Colab notebook generated from museum_ai/
 ├── visitor-mobile/
 │   ├── src/                  Feature-first Expo application
 │   ├── package.json
@@ -49,7 +53,7 @@ src/
 └── shared/                   Shared API, configuration, i18n, theme and UI
 ```
 
-The API is organized by backend domains including `auth`, `beacons`, `zones`, `exhibits`, `assignments`, `media` and `public-guide`.
+The API is organized by backend domains including `auth`, `beacons`, `zones`, `exhibits`, `localization`, `assignments`, `media` and `public-guide`.
 
 ## Prerequisites
 
@@ -95,7 +99,7 @@ Environment ownership:
 
 | File                       | Main configuration                                                  |
 | -------------------------- | ------------------------------------------------------------------- |
-| `backend/api/.env`         | Database, JWT, ports, CORS, uploads, languages and seed credentials |
+| `backend/api/.env`         | Database, JWT, ports, CORS, uploads, languages, seed credentials and `AI_SERVICE_SECRET` |
 | `backend/admin/.env.local` | Public API URL used by the Admin panel                              |
 | `visitor-mobile/.env`      | Public API URL and device-side BLE runtime defaults                 |
 | `visitor-web/.env`         | Public API URL used by the QR web experience                        |
@@ -157,6 +161,10 @@ npm run dev
 cd visitor-mobile
 npm run start
 ```
+
+**AI service** (translation and narration, optional)
+
+Saving an exhibit queues translation and narration for the selected languages. The work is done by `ai-services/`, normally a Google Colab notebook on a GPU. Until it is running, the exhibit page shows the languages as waiting. See [ai-services/README.md](ai-services/README.md) for setup.
 
 | Service                 | Local address                      |
 | ----------------------- | ---------------------------------- |
@@ -275,6 +283,12 @@ cd visitor-web
 npm run lint
 npm run typecheck
 npm run build
+```
+
+```bash
+cd ai-services
+uv run --python 3.12 --with-requirements requirements-dev.txt python -m pytest
+python scripts/build_notebook.py
 ```
 
 ## Privacy model

@@ -21,6 +21,7 @@ export const envSchema = z.object({
   MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().default(25),
 
   DEFAULT_LANGUAGE: z.string().min(2).default('vi'),
+  /// Offered languages until the AI service reports its own (see OfferedLanguagesService).
   SUPPORTED_LANGUAGES: z
     .string()
     .default('vi,en,ja,ko,zh,zh-hant,th,id,ms,km,lo,fil,fr,de,es,ru,it,pt,nl,pl,cs,sv,ar,hi,tr,uk'),
@@ -30,8 +31,19 @@ export const envSchema = z.object({
   SEED_ADMIN_EMAIL: z.string().email().default('admin@museum.local'),
   SEED_ADMIN_PASSWORD: z.string().min(6).default('Admin@12345'),
 
-  /** Optional. When unset, exhibit save still works; auto-translate + TTS is skipped. */
-  OPENAI_API_KEY: z.string().optional(),
+  /**
+   * Shared secret with the AI service (`ai-services/`). Signs job requests,
+   * heartbeats and result webhooks. When unset, localization requests are still
+   * queued but no AI service can connect to process them.
+   */
+  AI_SERVICE_SECRET: z
+    .string()
+    .optional()
+    .refine((value) => !value?.trim() || value.trim().length >= 16, {
+      message: 'AI_SERVICE_SECRET must be at least 16 characters',
+    }),
+  /** An AI service without a heartbeat for this long is treated as offline. */
+  AI_SERVICE_OFFLINE_AFTER_SECONDS: z.coerce.number().int().positive().default(90),
 });
 
 export type RawEnv = z.infer<typeof envSchema>;
@@ -51,7 +63,8 @@ export interface AppConfig {
   corsOrigins: string[];
   seedAdminEmail: string;
   seedAdminPassword: string;
-  openaiApiKey?: string;
+  aiServiceSecret?: string;
+  aiServiceOfflineAfterMs: number;
 }
 
 const splitList = (value: string): string[] =>
@@ -97,7 +110,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: splitList(value.CORS_ORIGINS),
     seedAdminEmail: value.SEED_ADMIN_EMAIL,
     seedAdminPassword: value.SEED_ADMIN_PASSWORD,
-    openaiApiKey: value.OPENAI_API_KEY?.trim() || undefined,
+    aiServiceSecret: value.AI_SERVICE_SECRET?.trim() || undefined,
+    aiServiceOfflineAfterMs: value.AI_SERVICE_OFFLINE_AFTER_SECONDS * 1000,
   };
 }
 

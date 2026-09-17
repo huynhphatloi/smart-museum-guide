@@ -123,15 +123,3 @@ export class QueryExhibitsDto extends PaginationQueryDto {
   @IsEnum(ExhibitStatus)
   status?: ExhibitStatus;
 }
-
-export class LocalizeExhibitDto {
-  @IsString()
-  @Matches(LANGUAGE_PATTERN, { message: 'sourceLanguage must look like "vi", "en" or "zh-Hans".' })
-  sourceLanguage!: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Matches(LANGUAGE_PATTERN, { each: true, message: 'Each target language must look like "vi" or "en".' })
-  targetLanguages!: string[];
-}

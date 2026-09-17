@@ -8,6 +8,7 @@ import { AppConfigModule } from './config/config.module';
 import { loadConfig } from './config/env.validation';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ExhibitsModule } from './exhibits/exhibits.module';
+import { LocalizationModule } from './localization/localization.module';
 import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PublicGuideModule } from './public-guide/public-guide.module';
@@ -34,6 +35,7 @@ import { ZonesModule } from './zones/zones.module';
     ZonesModule,
     BeaconsModule,
     ExhibitsModule,
+    LocalizationModule,
     AssignmentsModule,
     MediaModule,
     PublicGuideModule,

@@ -39,6 +39,13 @@ visitor-mobile/ios/
 coverage/
 *.lcov
 
+# python (ai-services)
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.museum-ai/
+
 # logs
 npm-debug.log*
 yarn-debug.log*

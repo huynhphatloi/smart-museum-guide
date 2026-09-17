@@ -11,42 +11,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError, apiFetch, apiUpload, mediaUrl } from '@/lib/api-client';
 import { formatPeriod } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { Exhibit, ExhibitMedia, LocalizeExhibitResult, MediaType } from '@/lib/types';
+import {
+  Exhibit,
+  ExhibitMedia,
+  LanguageOption,
+  MediaType,
+  RequestLocalizationResult,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
-
-/** Visitor languages staff can generate from the primary copy. */
-export const EXHIBIT_LANGUAGES = [
-  { code: 'vi', label: 'Tiếng Việt' },
-  { code: 'en', label: 'English' },
-  { code: 'ja', label: '日本語' },
-  { code: 'ko', label: '한국어' },
-  { code: 'zh', label: '中文（简体）' },
-  { code: 'zh-hant', label: '中文（繁體）' },
-  { code: 'th', label: 'ไทย' },
-  { code: 'id', label: 'Bahasa Indonesia' },
-  { code: 'ms', label: 'Bahasa Melayu' },
-  { code: 'km', label: 'ខ្មែរ' },
-  { code: 'lo', label: 'ລາວ' },
-  { code: 'fil', label: 'Filipino' },
-  { code: 'fr', label: 'Français' },
-  { code: 'de', label: 'Deutsch' },
-  { code: 'es', label: 'Español' },
-  { code: 'ru', label: 'Русский' },
-  { code: 'it', label: 'Italiano' },
-  { code: 'pt', label: 'Português' },
-  { code: 'nl', label: 'Nederlands' },
-  { code: 'pl', label: 'Polski' },
-  { code: 'cs', label: 'Čeština' },
-  { code: 'sv', label: 'Svenska' },
-  { code: 'ar', label: 'العربية' },
-  { code: 'hi', label: 'हिन्दी' },
-  { code: 'tr', label: 'Türkçe' },
-  { code: 'uk', label: 'Українська' },
-] as const;
+import { nativeLanguageName, useOfferedLanguages } from '../model/languages';
+import {
+  announceLocalization,
+  LocalizationPanel,
+  localizationQueryKey,
+} from './localization-panel';
 
 type PendingFile = { id: string; file: File; previewUrl: string; type: MediaType };
 
@@ -84,6 +67,21 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
     [exhibit?.translations],
   );
 
+  const languagesQuery = useOfferedLanguages();
+  const offeredCodes = useMemo(
+    () => new Set((languagesQuery.data?.languages ?? []).map((language) => language.code)),
+    [languagesQuery.data],
+  );
+  // Not offered by the AI service, but the exhibit already has copy in them: shown, not selectable.
+  const chipLanguages: LanguageOption[] = useMemo(() => {
+    const offered = languagesQuery.data?.languages ?? [];
+    const extra = [...existingCodes]
+      .filter((code) => !offered.some((language) => language.code === code))
+      .map((code) => ({ code, name: code, nativeName: nativeLanguageName(code) }));
+    return [...offered, ...extra];
+  }, [languagesQuery.data, existingCodes]);
+  const isOffered = (code: string) => !languagesQuery.data || offeredCodes.has(code);
+
   useEffect(() => {
     if (!exhibit) return;
     const nextPrimary = inferPrimaryLanguage(exhibit);
@@ -119,7 +117,7 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
   }
 
   function toggleVariant(languageCode: string) {
-    if (languageCode === primaryLanguage) return;
+    if (languageCode === primaryLanguage || !isOffered(languageCode)) return;
     setVariants((current) =>
       current.includes(languageCode)
         ? current.filter((code) => code !== languageCode)
@@ -153,6 +151,7 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
   const invalidate = (exhibitId: string) => {
     void queryClient.invalidateQueries({ queryKey: ['exhibit', exhibitId] });
     void queryClient.invalidateQueries({ queryKey: ['exhibits'] });
+    void queryClient.invalidateQueries({ queryKey: localizationQueryKey(exhibitId) });
   };
 
   const setStatus = useMutation({
@@ -249,27 +248,26 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
         await uploadMedia(saved.id, item.file);
       }
 
-      const localize = await apiFetch<LocalizeExhibitResult>(
-        `/admin/exhibits/${saved.id}/localize`,
+      // Only queues the work: the AI service translates and narrates in the
+      // background and reports back through a webhook.
+      const localization = await apiFetch<RequestLocalizationResult>(
+        `/admin/exhibits/${saved.id}/localization`,
         {
           method: 'POST',
           body: {
             sourceLanguage: primaryLanguage,
-            targetLanguages: variants.filter((code) => code !== primaryLanguage),
+            targetLanguages: variants.filter((code) => code !== primaryLanguage && isOffered(code)),
           },
         },
       );
 
-      return { saved, localize };
+      return { saved, localization };
     },
-    onSuccess: ({ saved, localize }) => {
+    onSuccess: ({ saved, localization }) => {
       pendingFiles.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       setPendingFiles([]);
       toast.success(isEdit ? t('exhibitSaved') : t('exhibitCreated', { code: saved.code }));
-      if (localize.warning) toast.warning(localize.warning);
-      else if (localize.generated.some((row) => row.translated || row.audioGenerated)) {
-        toast.success(t('localizeDone'));
-      }
+      announceLocalization(localization, t);
       invalidate(saved.id);
       if (!isEdit) router.push(`/exhibits/${saved.id}`);
     },
@@ -391,11 +389,18 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
                 value={primaryLanguage}
                 onChange={(event) => applyPrimaryLanguage(event.target.value)}
               >
-                {EXHIBIT_LANGUAGES.map((language) => (
-                  <option key={language.code} value={language.code}>
-                    {language.label}
-                  </option>
-                ))}
+                {chipLanguages
+                  .filter(
+                    (language) => isOffered(language.code) || language.code === primaryLanguage,
+                  )
+                  .map((language) => (
+                    <option key={language.code} value={language.code}>
+                      {language.nativeName}
+                    </option>
+                  ))}
+                {chipLanguages.some((language) => language.code === primaryLanguage) ? null : (
+                  <option value={primaryLanguage}>{primaryLanguage}</option>
+                )}
               </select>
               <p className="text-xs text-muted-foreground">{t('primaryLanguageHint')}</p>
             </div>
@@ -495,55 +500,64 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
             <CardDescription>{t('languageVariantsHint')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {EXHIBIT_LANGUAGES.map((language) => {
-                const languageCode = language.code;
-                const selected = selectedLanguages.includes(languageCode);
-                const isPrimary = languageCode === primaryLanguage;
-                const exists = existingCodes.has(languageCode);
-                return (
-                  <button
-                    key={languageCode}
-                    type="button"
-                    disabled={isPrimary}
-                    onClick={() => toggleVariant(languageCode)}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-sm',
-                      selected
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-input bg-background text-foreground hover:bg-accent',
-                      isPrimary && 'cursor-default opacity-90',
-                    )}
-                  >
-                    {language.label}
-                    {isPrimary
-                      ? ` · ${t('primaryIncluded')}`
-                      : exists
-                        ? ` · ${t('alreadyTranslated')}`
-                        : selected
-                          ? ` · ${t('willTranslate')}`
-                          : ''}
-                  </button>
-                );
-              })}
-            </div>
-            {translations.some((row) => row.audioUrl) ? (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">{t('narrationAudio')}</p>
-                {translations.map((row) =>
-                  row.audioUrl ? (
-                    <div key={row.id} className="space-y-1">
-                      <p className="text-xs text-muted-foreground">{row.languageCode}</p>
-                      <audio className="w-full" controls src={mediaUrl(row.audioUrl)} />
-                    </div>
-                  ) : null,
-                )}
-              </div>
+            {languagesQuery.isLoading ? (
+              <Skeleton className="h-20" />
             ) : (
-              <p className="text-xs text-muted-foreground">{t('generateAudioHint')}</p>
+              <div className="flex flex-wrap gap-2">
+                {chipLanguages.map((language) => {
+                  const languageCode = language.code;
+                  const offered = isOffered(languageCode);
+                  const selected = offered && selectedLanguages.includes(languageCode);
+                  const isPrimary = languageCode === primaryLanguage;
+                  const exists = existingCodes.has(languageCode);
+                  return (
+                    <button
+                      key={languageCode}
+                      type="button"
+                      disabled={isPrimary || !offered}
+                      title={language.name}
+                      onClick={() => toggleVariant(languageCode)}
+                      className={cn(
+                        'rounded-full border px-3 py-1 text-sm',
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-input bg-background text-foreground hover:bg-accent',
+                        isPrimary && 'cursor-default opacity-90',
+                        !offered &&
+                          'cursor-not-allowed border-dashed opacity-60 hover:bg-background',
+                      )}
+                    >
+                      {language.nativeName}
+                      {isPrimary
+                        ? ` · ${t('primaryIncluded')}`
+                        : !offered
+                          ? ` · ${t('languageNotOffered')}`
+                          : exists
+                            ? ` · ${t('alreadyTranslated')}`
+                            : selected
+                              ? ` · ${t('willTranslate')}`
+                              : ''}
+                    </button>
+                  );
+                })}
+              </div>
             )}
+            <p className="text-xs text-muted-foreground">
+              {languagesQuery.isError
+                ? t('languagesLoadError')
+                : languagesQuery.data?.source === 'config'
+                  ? t('languagesFromConfig')
+                  : t('languagesFromAiService', {
+                      count: String(languagesQuery.data?.languages.length ?? 0),
+                    })}{' '}
+              {t('generateAudioHint')}
+            </p>
           </CardContent>
         </Card>
+
+        {exhibit ? (
+          <LocalizationPanel exhibitId={exhibit.id} primaryLanguage={primaryLanguage} />
+        ) : null}
 
         {exhibit ? (
           <Card>
