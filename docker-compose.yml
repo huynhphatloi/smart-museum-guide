@@ -1,0 +1,74 @@
+# Local smoke test for the Coolify-bound images.
+# Usage: docker compose up --build
+#
+# Coolify itself should use three separate Applications (not this file),
+# each pointed at the matching Dockerfile / base directory.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smart_museum_guide
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d smart_museum_guide']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: api/Dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/smart_museum_guide?schema=public
+      JWT_SECRET: local-docker-compose-jwt-secret-change-me
+      JWT_EXPIRES_IN: 12h
+      PUBLIC_BASE_URL: http://localhost:3001
+      VISITOR_WEB_URL: http://localhost:4173
+      CORS_ORIGINS: http://localhost:4000,http://localhost:4173
+      UPLOAD_DIR: /data/uploads
+      MAX_UPLOAD_SIZE_MB: '25'
+      DEFAULT_LANGUAGE: vi
+      AI_SERVICE_SECRET: local-docker-ai-secret-16chars
+      AI_SERVICE_OFFLINE_AFTER_SECONDS: '90'
+    volumes:
+      - api_uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: ./backend
+      dockerfile: admin/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - '4000:4000'
+    depends_on:
+      - api
+
+  visitor-web:
+    build:
+      context: ./visitor-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3001/api
+    ports:
+      - '4173:80'
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  api_uploads:

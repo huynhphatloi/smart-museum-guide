@@ -152,7 +152,7 @@ TROUBLESHOOTING = """### Troubleshooting
 | --- | --- |
 | `The backend rejected the signature` | `AI_SERVICE_SECRET` here and in `backend/api/.env` differ. |
 | `AI_SERVICE_SECRET is not set in backend/api/.env` | Set it, restart the API. |
-| `Cannot reach BACKEND_API_URL` | The API tunnel is down or the URL changed; restart `cloudflared` and update the form. |
+| `Cannot reach BACKEND_API_URL` | Coolify API down, or local tunnel URL changed; use the stable `https://api.<domain>/api` in production, or restart `cloudflared` and update the form locally. |
 | CMS shows *AI service offline* | This notebook stopped, or the tunnel died. Run all again; waiting tasks resume. |
 | `401 ... gated repo` while loading TranslateGemma | Accept the license on Hugging Face and add `HF_TOKEN`. |
 | CUDA out of memory | Use an L4/A100 runtime, keep `translategemma-4b-it`, or clear `FALLBACK_TTS_MODEL`. |

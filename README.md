@@ -291,6 +291,27 @@ uv run --python 3.12 --with-requirements requirements-dev.txt python -m pytest
 python scripts/build_notebook.py
 ```
 
+## Production deploy (Coolify)
+
+The public API must have a stable HTTPS URL so the Colab AI worker can post localization webhooks without changing `BACKEND_API_URL` every session. Docker images are provided for that stack; the AI service itself stays on Colab (GPU) and is not deployed to Coolify.
+
+| Image | Path | Coolify base directory |
+| ----- | ---- | ---------------------- |
+| API | [`backend/api/Dockerfile`](backend/api/Dockerfile) | `backend` |
+| Admin | [`backend/admin/Dockerfile`](backend/admin/Dockerfile) | `backend` |
+| Visitor Web | [`visitor-web/Dockerfile`](visitor-web/Dockerfile) | `visitor-web` |
+
+Local smoke test before Coolify:
+
+```bash
+docker compose up --build
+curl http://localhost:3001/api/health
+```
+
+Create four Coolify resources (Postgres + three Applications), set domains such as `api.<domain>`, `admin.<domain>`, `guide.<domain>`, mount a persistent volume on the API at `/data/uploads`, and raise the proxy body limit to ~40 MB / timeout to ~120 s for webhook payloads. Full variable list: [`deploy/coolify.env.example`](deploy/coolify.env.example).
+
+After the API is live, set Colab `BACKEND_API_URL=https://api.<domain>/api` once (see [ai-services/README.md](ai-services/README.md)).
+
 ## Privacy model
 
 Raw BLE readings and visitor movement histories remain on the visitor's device. The mobile app contacts the API only after it confirms a zone and needs to resolve the active exhibit content.

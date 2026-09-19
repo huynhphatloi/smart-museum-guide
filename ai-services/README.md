@@ -59,6 +59,22 @@ GPU memory: an L4 (24 GB) holds the translator in bf16 plus VoxCPM2. On a T4 (16
 
 ## Run on Google Colab
 
+### Production (Coolify API — preferred)
+
+When the backend is deployed on Coolify, the API HTTPS domain is stable. Use that URL so webhooks keep working without updating the notebook after every local tunnel restart.
+
+1. Deploy the API (see [../README.md](../README.md) and [../deploy/coolify.env.example](../deploy/coolify.env.example)).
+2. Set the same `AI_SERVICE_SECRET` in Coolify and in Colab secrets (`openssl rand -hex 24`).
+3. Open `notebooks/museum_ai_service.ipynb` in Colab, select a GPU runtime, and add Colab secrets `AI_SERVICE_SECRET` and `HF_TOKEN`.
+4. Set `BACKEND_API_URL` to `https://api.<your-domain>/api` **once**.
+5. **Runtime → Run all**. The notebook still opens its own tunnel as `PUBLIC_URL`; heartbeats teach the Coolify API the current Colab URL.
+
+Webhook the API must expose publicly:
+
+`POST https://api.<your-domain>/api/ai-services/webhooks/localization`
+
+### Local development (temporary tunnel)
+
 1. In `backend/api/.env`, set `AI_SERVICE_SECRET` to 16 or more random characters (`openssl rand -hex 24`), then restart the API.
 2. Expose the API: `cloudflared tunnel --url http://localhost:3001` prints `https://<random>.trycloudflare.com`.
 3. Open `notebooks/museum_ai_service.ipynb` in Colab (**File → Upload notebook**), and select a GPU runtime.
