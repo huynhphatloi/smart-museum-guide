@@ -50,6 +50,11 @@ async function bootstrap(): Promise<void> {
   logger.log(
     `Default language: ${config.defaultLanguage} | supported: ${config.supportedLanguages.join(', ')}`,
   );
+  logger.log(
+    config.r2
+      ? `Media storage: Cloudflare R2 bucket "${config.r2.bucket}" served from ${config.r2.publicUrl}`
+      : `Media storage: local disk (${config.uploadDir})`,
+  );
 }
 
 void bootstrap();

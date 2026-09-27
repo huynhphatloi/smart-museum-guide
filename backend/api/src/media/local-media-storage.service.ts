@@ -1,19 +1,15 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { APP_CONFIG, AppConfig } from '../config/env.validation';
-import { IncomingFile, MediaStorageService, StoredFile } from './media-storage.service';
-
-const ALLOWED_MIME_PREFIXES = ['image/', 'audio/', 'video/'];
-
-/** Maps a mime type to a tidy sub folder so uploads stay browsable. */
-export function folderForMimeType(mimeType: string): string {
-  if (mimeType.startsWith('image/')) return 'images';
-  if (mimeType.startsWith('audio/')) return 'audio';
-  if (mimeType.startsWith('video/')) return 'video';
-  return 'other';
-}
+import {
+  assertStorableFile,
+  folderForMimeType,
+  IncomingFile,
+  MediaStorageService,
+  StoredFile,
+} from './media-storage.service';
 
 /** Development / academic default: plain files under `backend/api/uploads`. */
 @Injectable()
@@ -29,16 +25,7 @@ export class LocalMediaStorageService extends MediaStorageService {
   }
 
   async save(file: IncomingFile, folder?: string): Promise<StoredFile> {
-    if (!ALLOWED_MIME_PREFIXES.some((prefix) => file.mimetype.startsWith(prefix))) {
-      throw new BadRequestException(
-        `Unsupported file type "${file.mimetype}". Only image, audio and video files are accepted.`,
-      );
-    }
-    if (file.size > this.config.maxUploadSizeBytes) {
-      throw new BadRequestException(
-        `File is larger than the ${Math.round(this.config.maxUploadSizeBytes / (1024 * 1024))} MB limit.`,
-      );
-    }
+    assertStorableFile(file, this.config.maxUploadSizeBytes);
 
     const targetFolder = folder ?? folderForMimeType(file.mimetype);
     const extension = path.extname(file.originalname).toLowerCase() || '';

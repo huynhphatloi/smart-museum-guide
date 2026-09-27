@@ -20,6 +20,18 @@ export const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().default(25),
 
+  /**
+   * Where uploads and generated narration are stored: `local` writes under
+   * UPLOAD_DIR, `r2` writes to the Cloudflare R2 bucket described by R2_*.
+   */
+  MEDIA_STORAGE: z.enum(['local', 'r2']).default('local'),
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET: z.string().optional(),
+  /// Public URL of the bucket (r2.dev subdomain or custom domain); media URLs start with it.
+  R2_PUBLIC_URL: z.string().optional(),
+
   DEFAULT_LANGUAGE: z.string().min(2).default('vi'),
   /// Offered languages until the AI service reports its own (see OfferedLanguagesService).
   SUPPORTED_LANGUAGES: z
@@ -48,6 +60,44 @@ export const envSchema = z.object({
 
 export type RawEnv = z.infer<typeof envSchema>;
 
+const R2_REQUIRED = [
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET',
+  'R2_PUBLIC_URL',
+] as const;
+
+/** The R2_* variables are only required once `MEDIA_STORAGE=r2` selects the bucket. */
+const validatedEnvSchema = envSchema.superRefine((value, ctx) => {
+  if (value.MEDIA_STORAGE !== 'r2') return;
+  for (const key of R2_REQUIRED) {
+    if (!value[key]?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [key],
+        message: `${key} is required when MEDIA_STORAGE=r2`,
+      });
+    }
+  }
+  if (value.R2_PUBLIC_URL?.trim() && !/^https?:\/\/[^/\s]+/i.test(value.R2_PUBLIC_URL.trim())) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['R2_PUBLIC_URL'],
+      message: 'R2_PUBLIC_URL must be an http(s) URL, e.g. https://media.example.com',
+    });
+  }
+});
+
+export interface R2Config {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucket: string;
+  /** Without a trailing slash. */
+  publicUrl: string;
+}
+
 export interface AppConfig {
   nodeEnv: RawEnv['NODE_ENV'];
   databaseUrl: string;
@@ -58,6 +108,9 @@ export interface AppConfig {
   visitorWebUrl: string;
   uploadDir: string;
   maxUploadSizeBytes: number;
+  mediaStorage: RawEnv['MEDIA_STORAGE'];
+  /** Set only when `mediaStorage` is `r2`. */
+  r2?: R2Config;
   defaultLanguage: string;
   supportedLanguages: string[];
   corsOrigins: string[];
@@ -78,7 +131,7 @@ const splitList = (value: string): string[] =>
  * Throws a readable error listing every invalid variable.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = envSchema.safeParse(env);
+  const parsed = validatedEnvSchema.safeParse(env);
 
   if (!parsed.success) {
     const details = parsed.error.issues
@@ -105,6 +158,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     visitorWebUrl: value.VISITOR_WEB_URL.replace(/\/$/, ''),
     uploadDir: value.UPLOAD_DIR,
     maxUploadSizeBytes: value.MAX_UPLOAD_SIZE_MB * 1024 * 1024,
+    mediaStorage: value.MEDIA_STORAGE,
+    r2:
+      value.MEDIA_STORAGE === 'r2'
+        ? {
+            accountId: value.R2_ACCOUNT_ID!.trim(),
+            accessKeyId: value.R2_ACCESS_KEY_ID!.trim(),
+            secretAccessKey: value.R2_SECRET_ACCESS_KEY!.trim(),
+            bucket: value.R2_BUCKET!.trim(),
+            publicUrl: value.R2_PUBLIC_URL!.trim().replace(/\/+$/, ''),
+          }
+        : undefined,
     defaultLanguage,
     supportedLanguages,
     corsOrigins: splitList(value.CORS_ORIGINS),

@@ -99,7 +99,7 @@ Environment ownership:
 
 | File                       | Main configuration                                                  |
 | -------------------------- | ------------------------------------------------------------------- |
-| `backend/api/.env`         | Database, JWT, ports, CORS, uploads, languages, seed credentials and `AI_SERVICE_SECRET` |
+| `backend/api/.env`         | Database, JWT, ports, CORS, uploads / Cloudflare R2, languages, seed credentials and `AI_SERVICE_SECRET` |
 | `backend/admin/.env.local` | Public API URL used by the Admin panel                              |
 | `visitor-mobile/.env`      | Public API URL and device-side BLE runtime defaults                 |
 | `visitor-web/.env`         | Public API URL used by the QR web experience                        |
@@ -311,6 +311,16 @@ curl http://localhost:3001/api/health
 Create four Coolify resources (Postgres + three Applications), set domains such as `api.<domain>`, `admin.<domain>`, `guide.<domain>`, mount a persistent volume on the API at `/data/uploads`, and raise the proxy body limit to ~40 MB / timeout to ~120 s for webhook payloads. Full variable list: [`deploy/coolify.env.example`](deploy/coolify.env.example).
 
 After the API is live, set Colab `BACKEND_API_URL=https://api.<domain>/api` once (see [ai-services/README.md](ai-services/README.md)).
+
+### Media storage (Cloudflare R2)
+
+By default, uploads and AI narration (TTS) are written to `UPLOAD_DIR` and served by the API at `/uploads`. To store them in Cloudflare R2 instead:
+
+1. Create an R2 bucket and enable public access, either through the `r2.dev` subdomain or a custom domain such as `media.<domain>`.
+2. Create an R2 API token with **Object Read & Write** on that bucket.
+3. In `backend/api/.env` (or Coolify), set `MEDIA_STORAGE=r2`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and `R2_PUBLIC_URL`, then restart the API. The startup log shows which storage is active.
+
+New files get absolute URLs such as `https://media.<domain>/audio/<uuid>.mp3`, and every client loads them straight from R2. Files uploaded earlier keep their `/uploads/...` URLs and are still served from disk, so keep the volume until you no longer need them.
 
 ## Privacy model
 
