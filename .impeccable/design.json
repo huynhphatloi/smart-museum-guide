@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-27T05:00:00Z",
+  "title": "Design System: Smart Museum Guide",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Warm paper", "canonical": "#F5F2EB" },
+      "ink": { "role": "neutral", "displayName": "Gallery ink", "canonical": "#22211E" },
+      "lacquer": { "role": "primary", "displayName": "Muted lacquer", "canonical": "#803E31" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Newsreader", "purpose": "Exhibit and section headings" },
+      "body": { "displayName": "Be Vietnam Pro", "purpose": "Reading text and interface controls" }
+    },
+    "shadows": [],
+    "motion": [{ "name": "color-standard", "value": "150ms ease", "purpose": "Button and navigation feedback" }],
+    "breakpoints": [{ "name": "sm", "value": "640px" }, { "name": "lg", "value": "1024px" }]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main visitor or staff action.",
+      "html": "<button class=\"ds-btn-primary\">Mở khu vực</button>",
+      "css": ".ds-btn-primary{min-height:48px;padding:12px 24px;border:0;border-radius:3px;background:#22211E;color:#FBFAF6;font:600 14px 'Be Vietnam Pro',sans-serif;cursor:pointer;transition:background 150ms ease}.ds-btn-primary:hover{background:#803E31}.ds-btn-primary:focus-visible{outline:2px solid #803E31;outline-offset:3px}"
+    },
+    {
+      "name": "Zone code input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Manual fallback when a QR code is unavailable.",
+      "html": "<input class=\"ds-input\" aria-label=\"Mã khu vực\" placeholder=\"ZONE_A01\" />",
+      "css": ".ds-input{min-height:48px;padding:12px 16px;border:1px solid #D9D5CD;border-radius:3px;background:#FBFAF6;color:#22211E;font:400 16px 'Be Vietnam Pro',sans-serif}.ds-input:focus-visible{border-color:#803E31;outline:2px solid #803E31;outline-offset:2px}"
+    },
+    {
+      "name": "Admin navigation item",
+      "kind": "nav",
+      "description": "Persistent active route in the staff console.",
+      "html": "<a class=\"ds-nav\" href=\"#\" aria-current=\"page\">Hiện vật</a>",
+      "css": ".ds-nav{display:flex;align-items:center;min-height:44px;padding:0 16px;border-left:2px solid #803E31;background:#F0EBE1;color:#22211E;text-decoration:none;font:600 14px 'Be Vietnam Pro',sans-serif}.ds-nav:hover{background:#E9E2D7}.ds-nav:focus-visible{outline:2px solid #803E31;outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The photographic collection sheet",
+    "overview": "Real object imagery anchors each visitor view. Editorial type supports long reading, while the staff console keeps collection work structured and calm.",
+    "keyCharacteristics": ["Image-led", "Readable", "Quiet", "Functional"],
+    "rules": [{ "name": "Object first", "body": "Place the object image and guide before decorative branding.", "section": "typography" }],
+    "dos": ["Do show real object photographs with captions.", "Do distinguish summary, narration and audio."],
+    "donts": ["Don't replace object imagery with abstract arches.", "Don't use color alone to indicate status."]
+  }
+}

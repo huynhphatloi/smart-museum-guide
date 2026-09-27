@@ -20,6 +20,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ListPagination } from '@/components/ui/list-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -34,18 +35,21 @@ import { ApiError, apiFetch } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
 import { Paginated, Zone } from '@/lib/types';
 
+const PAGE_SIZE = 25;
+
 export default function ZonesPage() {
   const { t } = useI18n();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const zonesQuery = useQuery({
-    queryKey: ['zones', search],
+    queryKey: ['zones', search, page],
     queryFn: () =>
       apiFetch<Paginated<Zone>>(
-        `/admin/zones?pageSize=100${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+        `/admin/zones?page=${page}&pageSize=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
       ),
   });
 
@@ -66,6 +70,7 @@ export default function ZonesPage() {
     mutationFn: (id: string) => apiFetch<void>(`/admin/zones/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast.success(t('zoneDeleted'));
+      setPage(1);
       void queryClient.invalidateQueries({ queryKey: ['zones'] });
     },
     onError: (error) =>
@@ -109,84 +114,106 @@ export default function ZonesPage() {
               className="w-full max-w-xs"
               placeholder={t('searchZones')}
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {zonesQuery.isLoading ? (
             <Skeleton className="m-6 h-40" />
+          ) : zonesQuery.isError ? (
+            <div className="p-6" role="alert">
+              <EmptyState
+                title={t('listLoadError')}
+                description={t('listLoadErrorHint')}
+                action={<Button onClick={() => void zonesQuery.refetch()}>{t('retry')}</Button>}
+              />
+            </div>
           ) : !zonesQuery.data?.items.length ? (
             <div className="p-6">
               <EmptyState title={t('noZones')} description={t('noZonesHint')} />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('code')}</TableHead>
-                  <TableHead>{t('name')}</TableHead>
-                  <TableHead>{t('floor')}</TableHead>
-                  <TableHead>{t('colBeacons')}</TableHead>
-                  <TableHead>{t('colSchedule')}</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {zonesQuery.data.items.map((zone) => (
-                  <TableRow key={zone.id}>
-                    <TableCell>
-                      <Link className="font-medium hover:underline" href={`/zones/${zone.id}`}>
-                        {zone.code}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{zone.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{zone.floor ?? '-'}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {zone.beacons?.length ? (
-                          zone.beacons.map((beacon) => (
-                            <Badge
-                              key={beacon.id}
-                              variant={beacon.enabled ? 'secondary' : 'destructive'}
-                            >
-                              {beacon.identifier}
-                            </Badge>
-                          ))
-                        ) : (
-                          <Badge variant="warning">{t('noBeacon')}</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {zone._count?.assignments ?? 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/zones/${zone.id}`}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            {t('edit')}
-                          </Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={deleteZone.isPending && deleteZone.variables === zone.id}
-                          onClick={() => {
-                            if (window.confirm(t('deleteZoneConfirm', { code: zone.code }))) {
-                              deleteZone.mutate(zone.id);
-                            }
-                          }}
-                        >
-                          {t('delete')}
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('code')}</TableHead>
+                    <TableHead>{t('name')}</TableHead>
+                    <TableHead>{t('floor')}</TableHead>
+                    <TableHead>{t('colBeacons')}</TableHead>
+                    <TableHead>{t('colSchedule')}</TableHead>
+                    <TableHead />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {zonesQuery.data.items.map((zone) => (
+                    <TableRow key={zone.id}>
+                      <TableCell>
+                        <Link className="font-medium hover:underline" href={`/zones/${zone.id}`}>
+                          {zone.code}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{zone.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{zone.floor ?? '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {zone.beacons?.length ? (
+                            zone.beacons.map((beacon) => (
+                              <Badge
+                                key={beacon.id}
+                                variant={beacon.enabled ? 'secondary' : 'destructive'}
+                              >
+                                {beacon.identifier}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="warning">{t('noBeacon')}</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {zone._count?.assignments ?? 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/zones/${zone.id}`}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              {t('edit')}
+                            </Link>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={deleteZone.isPending && deleteZone.variables === zone.id}
+                            onClick={() => {
+                              if (window.confirm(t('deleteZoneConfirm', { code: zone.code }))) {
+                                deleteZone.mutate(zone.id);
+                              }
+                            }}
+                          >
+                            {t('delete')}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ListPagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={zonesQuery.data.total}
+                onPageChange={setPage}
+                previousLabel={t('previousPage')}
+                nextLabel={t('nextPage')}
+                rangeLabel={t('resultRange')}
+              />
+            </>
           )}
         </CardContent>
       </Card>

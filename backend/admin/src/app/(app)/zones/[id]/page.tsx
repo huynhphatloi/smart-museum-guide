@@ -26,6 +26,7 @@ export default function ZoneDetailPage() {
   const queryClient = useQueryClient();
   const zoneId = params.id;
   const [picked, setPicked] = useState('');
+  const [exhibitSearch, setExhibitSearch] = useState('');
 
   const zoneQuery = useQuery({
     queryKey: ['zone', zoneId],
@@ -38,8 +39,11 @@ export default function ZoneDetailPage() {
   });
 
   const exhibitsQuery = useQuery({
-    queryKey: ['exhibits', 'ALL'],
-    queryFn: () => apiFetch<Paginated<Exhibit>>('/admin/exhibits?pageSize=100'),
+    queryKey: ['exhibits', 'PUBLISHED', exhibitSearch],
+    queryFn: () =>
+      apiFetch<Paginated<Exhibit>>(
+        `/admin/exhibits?status=PUBLISHED&pageSize=100${exhibitSearch ? `&search=${encodeURIComponent(exhibitSearch)}` : ''}`,
+      ),
   });
 
   const invalidate = () => {
@@ -94,14 +98,19 @@ export default function ZoneDetailPage() {
 
   if (zoneQuery.isLoading) return <Skeleton className="h-96" />;
   if (zoneQuery.error || !zoneQuery.data) {
-    return <p className="text-sm text-destructive">{t('zoneNotFound')}</p>;
+    return (
+      <div className="space-y-3" role="alert">
+        <p className="text-sm text-destructive">{t('listLoadError')}</p>
+        <Button variant="outline" onClick={() => void zoneQuery.refetch()}>
+          {t('retry')}
+        </Button>
+      </div>
+    );
   }
 
   const zone = zoneQuery.data;
   const current = zone.currentAssignment;
-  const publishable = (exhibitsQuery.data?.items ?? []).filter(
-    (exhibit) => exhibit.status !== 'ARCHIVED',
-  );
+  const publishable = exhibitsQuery.data?.items ?? [];
 
   function handleSaveZone(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -187,7 +196,7 @@ export default function ZoneDetailPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{current.exhibit.defaultTitle}</p>
                   <Badge variant={current.exhibit.status === 'PUBLISHED' ? 'success' : 'warning'}>
-                    {current.exhibit.status}
+                    {current.exhibit.status === 'PUBLISHED' ? t('filterPUBLISHED') : current.exhibit.status === 'DRAFT' ? t('filterDRAFT') : t('filterARCHIVED')}
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{current.exhibit.code}</p>
@@ -210,6 +219,15 @@ export default function ZoneDetailPage() {
 
             <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
               <Label htmlFor="exhibit">{t('changeExhibit')}</Label>
+              <Input
+                aria-label={t('searchExhibits')}
+                placeholder={t('searchExhibits')}
+                value={exhibitSearch}
+                onChange={(event) => {
+                  setExhibitSearch(event.target.value);
+                  setPicked('');
+                }}
+              />
               <div className="flex flex-wrap gap-2">
                 <select
                   id="exhibit"
@@ -221,7 +239,6 @@ export default function ZoneDetailPage() {
                   {publishable.map((exhibit) => (
                     <option key={exhibit.id} value={exhibit.id}>
                       {exhibit.code} — {exhibit.defaultTitle}
-                      {exhibit.status === 'PUBLISHED' ? '' : ` (${exhibit.status})`}
                     </option>
                   ))}
                 </select>
@@ -245,6 +262,13 @@ export default function ZoneDetailPage() {
                   </Button>
                 ) : null}
               </div>
+              {exhibitsQuery.isError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {t('listLoadError')}
+                </p>
+              ) : !exhibitsQuery.isLoading && publishable.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('noPublishedExhibits')}</p>
+              ) : null}
               <p className="text-xs text-muted-foreground">{t('beaconQrUntouched')}</p>
             </div>
 
@@ -331,6 +355,11 @@ export default function ZoneDetailPage() {
                   <Button asChild variant="outline" className="w-full">
                     <a href={qrQuery.data.dataUrl} download={`${zone.code}-qr.png`}>
                       {t('downloadPng')}
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={qrQuery.data.value} target="_blank" rel="noopener noreferrer">
+                      {t('viewVisitorPage')}
                     </a>
                   </Button>
                 </>

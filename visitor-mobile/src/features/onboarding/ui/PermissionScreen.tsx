@@ -5,7 +5,7 @@ import { RootStackParamList } from '../../../application/navigation/types';
 import { useGuide } from '../../tour/model/GuideContext';
 import { t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
-import { Body, Button, Eyebrow, MuseumMark, Screen, Title } from '../../../shared/ui';
+import { Body, Button, Eyebrow, Screen, Title } from '../../../shared/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Permission'>;
 
@@ -22,11 +22,6 @@ export function PermissionScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.screen}>
-      <View style={styles.signalArtwork}>
-        <View style={styles.signalRingLarge} />
-        <View style={styles.signalRingSmall} />
-        <MuseumMark compact />
-      </View>
 
       <Eyebrow>{t(language, 'automaticGuide')}</Eyebrow>
       <Title>{t(language, 'permissionTitle')}</Title>
@@ -70,28 +65,6 @@ function Detail({ number, text }: { number: string; text: string }) {
 
 const styles = StyleSheet.create({
   screen: { paddingTop: theme.spacing(2) },
-  signalArtwork: {
-    height: 156,
-    marginBottom: theme.spacing(3),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signalRingLarge: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-  },
-  signalRingSmall: {
-    position: 'absolute',
-    width: 102,
-    height: 102,
-    borderRadius: 51,
-    borderWidth: 1,
-    borderColor: theme.colors.brass,
-  },
   details: {
     marginTop: theme.spacing(3),
     borderTopWidth: 1,

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListPagination } from '@/components/ui/list-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -22,15 +23,18 @@ import { ApiError, apiFetch } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
 import { Beacon, Paginated, Zone } from '@/lib/types';
 
+const PAGE_SIZE = 25;
+
 export default function BeaconsPage() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Beacon | null>(null);
+  const [page, setPage] = useState(1);
 
   const beaconsQuery = useQuery({
-    queryKey: ['beacons'],
-    queryFn: () => apiFetch<Paginated<Beacon>>('/admin/beacons?pageSize=100'),
+    queryKey: ['beacons', page],
+    queryFn: () => apiFetch<Paginated<Beacon>>(`/admin/beacons?page=${page}&pageSize=${PAGE_SIZE}`),
   });
 
   const zonesQuery = useQuery({
@@ -55,6 +59,7 @@ export default function BeaconsPage() {
     mutationFn: (id: string) => apiFetch<void>(`/admin/beacons/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast.success(t('beaconDeleted'));
+      setPage(1);
       void queryClient.invalidateQueries({ queryKey: ['beacons'] });
     },
     onError: (error) =>
@@ -91,94 +96,115 @@ export default function BeaconsPage() {
         <CardContent className="p-0">
           {beaconsQuery.isLoading ? (
             <Skeleton className="m-6 h-40" />
+          ) : beaconsQuery.isError ? (
+            <div className="p-6" role="alert">
+              <EmptyState
+                title={t('listLoadError')}
+                description={t('listLoadErrorHint')}
+                action={<Button onClick={() => void beaconsQuery.refetch()}>{t('retry')}</Button>}
+              />
+            </div>
           ) : !beaconsQuery.data?.items.length ? (
             <div className="p-6">
               <EmptyState title={t('noBeacons')} description={t('noBeaconsHint')} />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('colIdentifier')}</TableHead>
-                  <TableHead>{t('name')}</TableHead>
-                  <TableHead>{t('colZone')}</TableHead>
-                  <TableHead>{t('colBroadcast')}</TableHead>
-                  <TableHead>{t('colRadio')}</TableHead>
-                  <TableHead>{t('colReach')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {beaconsQuery.data.items.map((beacon) => (
-                  <TableRow key={beacon.id}>
-                    <TableCell className="font-medium">{beacon.identifier}</TableCell>
-                    <TableCell>{beacon.name}</TableCell>
-                    <TableCell>
-                      <p>{beacon.zone?.code ?? '-'}</p>
-                      <p className="text-xs text-muted-foreground">{beacon.protocol}</p>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {beacon.namespaceId && beacon.instanceId ? (
-                        <p>
-                          {beacon.namespaceId}:{beacon.instanceId}
-                        </p>
-                      ) : null}
-                      {beacon.uuid ? (
-                        <p className="opacity-70">
-                          {beacon.uuid} · {beacon.major ?? '-'}/{beacon.minor ?? '-'}
-                        </p>
-                      ) : null}
-                      {!beacon.namespaceId && !beacon.uuid ? '-' : null}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {beacon.txPower !== null ? `${beacon.txPower} dBm` : '-'}
-                      {beacon.advertisingIntervalMs ? ` · ${beacon.advertisingIntervalMs} ms` : ''}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {beacon.minRssi !== null ? `${beacon.minRssi} dBm` : t('museumDefault')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={beacon.enabled ? 'success' : 'destructive'}>
-                        {beacon.enabled ? t('enabled') : t('disabled')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditing(beacon)}>
-                          {t('edit')}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            toggleBeacon.mutate({ id: beacon.id, enabled: !beacon.enabled })
-                          }
-                        >
-                          {beacon.enabled ? t('disable') : t('enable')}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={deleteBeacon.isPending && deleteBeacon.variables === beacon.id}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                t('deleteBeaconConfirm', { id: beacon.identifier }),
-                              )
-                            ) {
-                              deleteBeacon.mutate(beacon.id);
-                            }
-                          }}
-                        >
-                          {t('delete')}
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('colIdentifier')}</TableHead>
+                    <TableHead>{t('name')}</TableHead>
+                    <TableHead>{t('colZone')}</TableHead>
+                    <TableHead>{t('colBroadcast')}</TableHead>
+                    <TableHead>{t('colRadio')}</TableHead>
+                    <TableHead>{t('colReach')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {beaconsQuery.data.items.map((beacon) => (
+                    <TableRow key={beacon.id}>
+                      <TableCell className="font-medium">{beacon.identifier}</TableCell>
+                      <TableCell>{beacon.name}</TableCell>
+                      <TableCell>
+                        <p>{beacon.zone?.code ?? '-'}</p>
+                        <p className="text-xs text-muted-foreground">{beacon.protocol}</p>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {beacon.namespaceId && beacon.instanceId ? (
+                          <p>
+                            {beacon.namespaceId}:{beacon.instanceId}
+                          </p>
+                        ) : null}
+                        {beacon.uuid ? (
+                          <p className="opacity-70">
+                            {beacon.uuid} · {beacon.major ?? '-'}/{beacon.minor ?? '-'}
+                          </p>
+                        ) : null}
+                        {!beacon.namespaceId && !beacon.uuid ? '-' : null}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {beacon.txPower !== null ? `${beacon.txPower} dBm` : '-'}
+                        {beacon.advertisingIntervalMs
+                          ? ` · ${beacon.advertisingIntervalMs} ms`
+                          : ''}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {beacon.minRssi !== null ? `${beacon.minRssi} dBm` : t('museumDefault')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={beacon.enabled ? 'success' : 'destructive'}>
+                          {beacon.enabled ? t('enabled') : t('disabled')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditing(beacon)}>
+                            {t('edit')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              toggleBeacon.mutate({ id: beacon.id, enabled: !beacon.enabled })
+                            }
+                          >
+                            {beacon.enabled ? t('disable') : t('enable')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={
+                              deleteBeacon.isPending && deleteBeacon.variables === beacon.id
+                            }
+                            onClick={() => {
+                              if (
+                                window.confirm(t('deleteBeaconConfirm', { id: beacon.identifier }))
+                              ) {
+                                deleteBeacon.mutate(beacon.id);
+                              }
+                            }}
+                          >
+                            {t('delete')}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ListPagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={beaconsQuery.data.total}
+                onPageChange={setPage}
+                previousLabel={t('previousPage')}
+                nextLabel={t('nextPage')}
+                rangeLabel={t('resultRange')}
+              />
+            </>
           )}
         </CardContent>
       </Card>

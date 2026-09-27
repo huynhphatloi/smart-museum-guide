@@ -9,11 +9,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const [language, setLanguage] = useState(() => resolveInitialLanguage([...UI_LANGUAGES], 'vi'));
   const [code, setCode] = useState('');
-
-  function handleLanguageChange(next: string) {
-    setLanguage(next);
-    rememberLanguage(next);
-  }
+  const vi = language === 'vi';
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,67 +18,50 @@ export function HomePage() {
   }
 
   return (
-    <main className="relative mx-auto grid min-h-[100dvh] max-w-6xl items-center gap-14 px-6 py-12 md:grid-cols-[0.8fr_1.2fr] md:px-10">
-      <div className="absolute right-6 top-6 flex overflow-hidden rounded-md border border-museum-line text-xs font-semibold">
-        {UI_LANGUAGES.map((codeOption) => (
-          <button
-            key={codeOption}
-            type="button"
-            onClick={() => handleLanguageChange(codeOption)}
-            className={`px-2.5 py-1 uppercase tracking-wide ${
-              language === codeOption
-                ? 'bg-museum-deep text-white'
-                : 'text-museum-muted hover:text-museum-ink'
-            }`}
-          >
-            {codeOption}
-          </button>
-        ))}
-      </div>
-
-      <div className="relative mx-auto hidden h-[28rem] w-full max-w-sm items-end overflow-hidden rounded-t-[12rem] bg-museum-deep p-8 md:flex">
-        <div className="absolute inset-8 rounded-t-[10rem] border border-white/20" />
-        <div className="absolute left-1/2 top-1/2 h-36 w-28 -translate-x-1/2 -translate-y-1/2 rounded-t-[4rem] bg-museum-brass" />
-        <span className="relative font-serif text-7xl text-white/20">01</span>
-      </div>
-
-      <section className="max-w-xl">
-        <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-museum-accent">
-          {t(language, 'companion')}
-        </p>
-        <h1 className="max-w-lg text-balance font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.035em] sm:text-6xl">
-          {t(language, 'appName')}
-        </h1>
-        <p className="mt-6 max-w-md text-pretty text-base leading-7 text-museum-muted">
-          {t(language, 'invalidQrBody')}
-        </p>
-
-        <form className="mt-12 border-t border-museum-line pt-6" onSubmit={handleSubmit}>
-          <label
-            htmlFor="zone-code"
-            className="mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-museum-muted"
-          >
-            {t(language, 'zoneCodePlaceholder')}
-          </label>
-          <div className="flex gap-3">
-            <input
-              id="zone-code"
-              className="min-w-0 flex-1 border-0 border-b border-museum-ink bg-transparent px-0 py-3 text-base tracking-wide placeholder:text-museum-muted/60 focus:border-museum-accent focus:outline-none"
-              placeholder="ZONE_A01"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-            />
-            <button
-              className="bg-museum-deep px-5 py-3 text-sm font-semibold text-white transition hover:bg-museum-accent active:translate-y-px"
-              type="submit"
-            >
-              {t(language, 'openZone')}
-            </button>
+    <main className="min-h-[100dvh]">
+      <header className="border-b border-museum-line">
+        <div className="mx-auto flex min-h-20 max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-14">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center border border-museum-ink font-serif text-xl leading-none" aria-hidden="true">M</span>
+            <span className="text-sm font-semibold tracking-tight">{t(language, 'appName')}</span>
           </div>
-        </form>
+          <div className="flex items-center gap-1 border border-museum-line p-1" role="group" aria-label={t(language, 'language')}>
+            {UI_LANGUAGES.map((option) => (
+              <button key={option} type="button" onClick={() => { setLanguage(option); rememberLanguage(option); }} aria-pressed={language === option} className={`min-h-9 min-w-11 px-2 text-xs font-semibold uppercase transition-colors ${language === option ? 'bg-museum-ink text-white' : 'text-museum-muted hover:bg-museum-line/40'}`}>{option}</button>
+            ))}
+          </div>
+        </div>
+      </header>
 
-        <p className="mt-10 text-xs text-museum-muted">{t(language, 'poweredBy')}</p>
-      </section>
+      <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-14">
+        <div className="grid items-center gap-10 pb-14 pt-10 lg:min-h-[690px] lg:grid-cols-[minmax(0,0.87fr)_minmax(0,1.13fr)] lg:gap-16 lg:pb-20 lg:pt-14">
+          <section className="order-1 max-w-[580px]">
+            <p className="mb-5 text-sm font-semibold text-museum-accent">{vi ? 'Một chuyến tham quan, nhiều câu chuyện' : 'A museum visit, many stories'}</p>
+            <h1 className="max-w-[11ch] text-balance font-serif text-[clamp(3.4rem,6.5vw,7.2rem)] font-medium leading-[0.98] tracking-[-0.055em]">{vi ? 'Khám phá từ hiện vật.' : 'A closer look at every object.'}</h1>
+            <p className="mt-7 max-w-[48ch] text-pretty text-base leading-7 text-museum-muted sm:text-lg sm:leading-8">{vi ? 'Quét mã QR cạnh hiện vật để xem hình ảnh, đọc bài thuyết minh đầy đủ và nghe câu chuyện bằng ngôn ngữ của bạn.' : 'Scan the QR code beside an object to see its images, read the full guide and listen in your language.'}</p>
+            <form className="mt-9 max-w-[510px] border-t border-museum-ink pt-5" onSubmit={handleSubmit}>
+              <label htmlFor="zone-code" className="mb-3 block text-sm font-semibold">{t(language, 'enterZoneCode')}</label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input id="zone-code" className="min-h-12 min-w-0 flex-1 border border-museum-line bg-museum-paper px-4 text-base outline-none placeholder:text-museum-muted/70 focus:border-museum-ink" placeholder={t(language, 'zoneCodePlaceholder')} value={code} onChange={(event) => setCode(event.target.value)} autoCapitalize="characters" />
+                <button className="min-h-12 bg-museum-ink px-6 text-sm font-semibold text-white transition-colors hover:bg-museum-accent" type="submit">{t(language, 'openZone')} <span aria-hidden="true" className="ml-3">↗</span></button>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-museum-muted">{vi ? 'Bạn cũng có thể dùng camera điện thoại để quét mã QR tại khu trưng bày.' : 'You can also scan the QR code in the gallery with your phone camera.'}</p>
+            </form>
+          </section>
+
+          <figure className="relative order-2 grid h-[310px] grid-cols-[1.2fr_0.8fr] grid-rows-2 gap-2 overflow-hidden sm:h-[480px] sm:gap-3 lg:order-2 lg:h-[590px]">
+            <img src="/isana-my-son.jpg" alt={vi ? 'Tượng Isana từ Mỹ Sơn' : 'Isana statue from My Son'} className="col-start-1 row-span-2 h-full w-full object-cover object-center" />
+            <img src="/dong-son-drum.jpg" alt={vi ? 'Trống đồng Đông Sơn' : 'Dong Son bronze drum'} className="h-full w-full object-cover" />
+            <img src="/five-tigers-hang-trong.jpg" alt={vi ? 'Tranh Ngũ Hổ Hàng Trống' : 'Five Tigers Hang Trong painting'} className="h-full w-full object-cover" />
+            <figcaption className="absolute bottom-0 right-0 bg-museum-paper/95 px-3 py-2 text-[11px] text-museum-muted">{vi ? 'Hình ảnh hiện vật minh họa' : 'Sample collection images'}</figcaption>
+          </figure>
+        </div>
+        <section className="grid gap-6 border-t border-museum-line pb-12 pt-7 text-sm leading-6 text-museum-muted md:grid-cols-3 md:gap-10" aria-label={vi ? 'Cách tham quan' : 'How it works'}>
+          <p><span className="mr-3 font-semibold text-museum-accent">01</span>{vi ? 'Tìm mã QR bên cạnh hiện vật.' : 'Find the QR beside an object.'}</p>
+          <p><span className="mr-3 font-semibold text-museum-accent">02</span>{vi ? 'Đọc hoặc nghe bài thuyết minh.' : 'Read or listen to the full guide.'}</p>
+          <p><span className="mr-3 font-semibold text-museum-accent">03</span>{vi ? 'Khám phá thêm bằng ngôn ngữ của bạn.' : 'Explore in your own language.'}</p>
+        </section>
+      </div>
     </main>
   );
 }

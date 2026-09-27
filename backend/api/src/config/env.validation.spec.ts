@@ -38,4 +38,20 @@ describe('media storage configuration', () => {
       'R2_PUBLIC_URL must be an http(s) URL',
     );
   });
+
+  it('requires public HTTPS URLs in production', () => {
+    expect(() => loadConfig({ ...base, NODE_ENV: 'production' })).toThrow(
+      /PUBLIC_BASE_URL must use a real HTTPS domain[\s\S]*VISITOR_WEB_URL must use a real HTTPS domain[\s\S]*CORS_ORIGINS/,
+    );
+  });
+
+  it('rejects sample domains even when they use HTTPS', () => {
+    expect(() => loadConfig({
+      ...base,
+      NODE_ENV: 'production',
+      PUBLIC_BASE_URL: 'https://api.museum.example.com',
+      VISITOR_WEB_URL: 'https://museum.example.com',
+      CORS_ORIGINS: 'https://museum.example.com',
+    })).toThrow(/real HTTPS domain/);
+  });
 });

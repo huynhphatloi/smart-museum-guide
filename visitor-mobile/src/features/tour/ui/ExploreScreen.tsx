@@ -9,7 +9,6 @@ import {
   Body,
   Button,
   Eyebrow,
-  MuseumMark,
   Row,
   Screen,
   Subtitle,
@@ -44,7 +43,7 @@ export function ExploreScreen() {
           <Eyebrow>{zoneName ? t(language, 'currentZone') : t(language, 'museumCollection')}</Eyebrow>
           <Title>{zoneName ?? t(language, 'explore')}</Title>
         </View>
-        <MuseumMark compact />
+        <Text style={styles.headerMonogram}>M</Text>
       </Row>
 
       <View style={[styles.guideBar, scanning && styles.guideBarActive]}>
@@ -108,7 +107,7 @@ export function ExploreScreen() {
           </View>
         ) : exhibitError ? (
           <View style={styles.message}>
-            <MuseumMark compact />
+            <Text style={styles.headerMonogram}>M</Text>
             <Body>
               {exhibitError.code === 'NO_ACTIVE_EXHIBIT'
                 ? t(language, 'noExhibit')
@@ -126,7 +125,7 @@ export function ExploreScreen() {
               <Image source={{ uri: hero.url }} style={styles.image} resizeMode="cover" />
             ) : (
               <View style={styles.imageFallback}>
-                <MuseumMark />
+                <Text style={styles.headerMonogram}>M</Text>
               </View>
             )}
             <View style={styles.featureCopy}>
@@ -145,9 +144,7 @@ export function ExploreScreen() {
           </View>
         ) : (
           <View style={styles.empty}>
-            <View style={styles.orbitOuter}>
-              <View style={styles.orbitInner} />
-            </View>
+            <Image source={require('../../../../assets/images/isana-my-son.jpg')} style={styles.emptyImage} resizeMode="cover" accessibilityLabel="Isana statue from My Son" />
             <Subtitle>
               {scanning ? t(language, 'scanning') : t(language, 'scanningStopped')}
             </Subtitle>
@@ -182,7 +179,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   guideHint: { color: theme.colors.muted, fontFamily: theme.type.body, fontSize: 11, marginTop: 2 },
-  guideAction: { paddingVertical: 8, paddingLeft: 12 },
+  guideAction: { minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingLeft: 12 },
   guideActionText: {
     color: theme.colors.accent,
     fontFamily: theme.type.body,
@@ -199,7 +196,7 @@ const styles = StyleSheet.create({
   },
   promptActions: { flexWrap: 'wrap', marginTop: 6 },
   flexButton: { flexGrow: 1, flexBasis: 130 },
-  dismissButton: { alignSelf: 'center', paddingHorizontal: 12, paddingTop: 12 },
+  dismissButton: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 4 },
   dismissText: { color: theme.colors.muted, fontFamily: theme.type.body, fontSize: 12 },
   errorText: {
     color: theme.colors.danger,
@@ -210,17 +207,15 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   loading: { minHeight: 280, alignItems: 'center', justifyContent: 'center' },
   message: { gap: theme.spacing(1.5), paddingVertical: theme.spacing(4) },
-  feature: { backgroundColor: theme.colors.paper, borderBottomRightRadius: theme.radius.lg },
+  feature: { backgroundColor: theme.colors.paper, borderWidth: 1, borderColor: theme.colors.line },
   image: {
     width: '100%',
-    height: 252,
-    borderTopLeftRadius: theme.radius.arch,
-    borderTopRightRadius: theme.radius.arch,
+    height: 210,
+    borderRadius: 2,
   },
   imageFallback: {
-    height: 252,
-    borderTopLeftRadius: theme.radius.arch,
-    borderTopRightRadius: theme.radius.arch,
+    height: 210,
+    borderRadius: 2,
     backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -240,22 +235,6 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing(3),
     paddingBottom: theme.spacing(5),
   },
-  orbitOuter: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing(3),
-  },
-  orbitInner: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: theme.colors.accentSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.brass,
-  },
+  headerMonogram: { width: 35, height: 35, borderWidth: 1, borderColor: theme.colors.ink, textAlign: 'center', textAlignVertical: 'center', fontFamily: theme.type.display, fontSize: 25, color: theme.colors.ink, lineHeight: 33 },
+  emptyImage: { width: '100%', height: 235, marginBottom: theme.spacing(2.5), backgroundColor: theme.colors.line },
 });

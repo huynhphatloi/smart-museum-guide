@@ -58,6 +58,12 @@
         {
           "cameraPermission": "The camera is used only to scan exhibit QR codes."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#8C392F"
+        }
       ]
     ],
     "extra": {

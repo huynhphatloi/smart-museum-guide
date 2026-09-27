@@ -39,6 +39,9 @@ export const env = {
 
   defaultLanguage: readString('EXPO_PUBLIC_DEFAULT_LANGUAGE', 'vi'),
 
+  /** Shows the staff calibration tool in Settings. Off in visitor builds. */
+  staffTools: readBoolean('EXPO_PUBLIC_STAFF_TOOLS', false),
+
   ble: {
     /** Length of the RSSI sliding window. */
     scanWindowMs: readNumber('EXPO_PUBLIC_SCAN_WINDOW_MS', 4000),

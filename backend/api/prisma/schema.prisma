@@ -60,6 +60,13 @@ enum BeaconProtocol {
   GENERIC
 }
 
+/// What a survey point is for. Reference points build the radio map; test
+/// points are held out and only ever used to measure positioning error.
+enum SurveyPointKind {
+  REFERENCE
+  TEST
+}
+
 /// Museum staff account. Visitors never have accounts.
 model AdminUser {
   id           String   @id @default(uuid())
@@ -83,14 +90,99 @@ model Zone {
   floor       String?
   /// Value encoded into the printed QR code (usually <visitorWebUrl>/q/<code>).
   qrCode      String?  @unique
+  /// The room plan this zone is drawn on. Null for zones not on any map yet.
+  floorPlanId String?
+  /// Outline on the floor plan, in metres:
+  ///   {"type":"circle","x":0.3,"y":0.3,"r":1.2}
+  ///   {"type":"polygon","points":[[0,0],[2,0],[2,2]]}
+  mapShape    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  floorPlan   FloorPlan?          @relation(fields: [floorPlanId], references: [id], onDelete: SetNull)
   beacons     Beacon[]
   assignments ExhibitAssignment[]
 
   @@index([code])
+  @@index([floorPlanId])
   @@map("zones")
+}
+
+/// A room plan the visitor app draws, and the coordinate system indoor
+/// positioning works in: metres, origin at the top-left corner, x to the right,
+/// y downwards.
+model FloorPlan {
+  id           String   @id @default(uuid())
+  /// Stable human readable code, e.g. DEMO_ROOM.
+  code         String   @unique
+  name         String
+  /// Free-form level label shown to visitors, e.g. "1".
+  level        String?
+  widthMeters  Float
+  heightMeters Float
+  /// Optional background drawing. Without it the app draws the room outline.
+  imageUrl     String?
+  /// k for weighted k-nearest-neighbours, chosen by the evaluation script.
+  positioningK Int      @default(3)
+  /// RSSI, in dBm, standing in for a beacon that was not heard at all, so every
+  /// fingerprint vector has the same length.
+  fillDbm      Int      @default(-100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  zones        Zone[]
+  surveyPoints SurveyPoint[]
+
+  @@map("floor_plans")
+}
+
+/// A spot on a floor plan where staff stood and recorded beacon signals.
+model SurveyPoint {
+  id          String          @id @default(uuid())
+  floorPlanId String
+  label       String
+  /// Metres from the plan's top-left corner.
+  x           Float
+  y           Float
+  kind        SurveyPointKind @default(REFERENCE)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  floorPlan FloorPlan       @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  captures  SurveyCapture[]
+
+  @@index([floorPlanId, kind])
+  @@map("survey_points")
+}
+
+/// One recording at one survey point with one phone held one way.
+///
+/// Phones of different makes report RSSI with different offsets, so every
+/// capture remembers the device it came from and the app prefers fingerprints
+/// recorded on its own model.
+model SurveyCapture {
+  id             String   @id @default(uuid())
+  pointId        String
+  /// e.g. "iPhone 13", "Pixel 7", or "simulator" for synthetic seed data.
+  deviceModel    String
+  /// "ios" | "android" | "simulator".
+  platform       String
+  /// Which way the phone faced, in degrees; null when not recorded.
+  orientationDeg Int?
+  startedAt      DateTime
+  durationMs     Int
+  /// Raw readings, kept so the evaluation can replay them with other settings:
+  /// [{"b":"BEACON_A01","r":-61,"t":123}] - t is ms since startedAt.
+  samples        Json
+  /// The fingerprint the phone derived from `samples`: {"BEACON_A01": -61.4}.
+  fingerprint    Json
+  createdAt      DateTime @default(now())
+
+  point SurveyPoint @relation(fields: [pointId], references: [id], onDelete: Cascade)
+
+  @@index([pointId])
+  @@index([deviceModel])
+  @@map("survey_captures")
 }
 
 /// A BLE beacon physically installed in a zone.
@@ -115,13 +207,13 @@ model Beacon {
   instanceId  String?
 
   /// iBeacon proximity UUID (null for beacons that do not advertise iBeacon).
-  uuid       String?
-  major      Int?
-  minor      Int?
+  uuid  String?
+  major Int?
+  minor Int?
 
   /// Configured transmit power in dBm. For indoor zoning this should be turned
   /// DOWN (roughly -12..-8 dBm), not up: a 200 m beacon makes zones overlap.
-  txPower    Int?
+  txPower               Int?
   /// Configured advertising interval in milliseconds. ~500 ms is a sensible
   /// starting point - faster drains the battery, slower starves the RSSI window.
   advertisingIntervalMs Int?
@@ -133,10 +225,16 @@ model Beacon {
   /// back to the app's global EXPO_PUBLIC_MIN_RSSI.
   minRssi Int?
 
-  enabled    Boolean        @default(true)
-  zoneId     String
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  /// Where the beacon is mounted on its zone's floor plan, in metres from the
+  /// plan's top-left corner. Used to draw it, for the nearest-beacon baseline
+  /// and by the simulator - fingerprint positioning itself never needs it.
+  mapX Float?
+  mapY Float?
+
+  enabled   Boolean  @default(true)
+  zoneId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   zone Zone @relation(fields: [zoneId], references: [id], onDelete: Restrict)
 

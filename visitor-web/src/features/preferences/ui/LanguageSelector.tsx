@@ -12,7 +12,7 @@ export function LanguageSelector({ languages, value, onChange, label }: Props) {
     <label className="flex items-center gap-2 text-sm">
       <span className="sr-only">{label}</span>
       <select
-        className="border-0 border-b border-white/35 bg-transparent px-1 py-1.5 text-sm text-white focus:border-white focus:outline-none"
+        className="border-0 border-b min-h-11 border-museum-line bg-transparent px-2 py-1.5 text-sm font-semibold text-museum-ink focus:border-museum-accent"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label={label}

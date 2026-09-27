@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -108,6 +109,21 @@ export class CreateBeaconDto {
   @Max(-30)
   minRssi?: number;
 
+  /** Mounting position on the zone's floor plan, in metres. null clears it. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1000)
+  mapX?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1000)
+  mapY?: number | null;
+
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
@@ -186,6 +202,21 @@ export class UpdateBeaconDto {
   @Min(-100)
   @Max(-30)
   minRssi?: number;
+
+  /** Mounting position on the zone's floor plan, in metres. null clears it. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1000)
+  mapX?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1000)
+  mapY?: number | null;
 
   @IsOptional()
   @IsBoolean()

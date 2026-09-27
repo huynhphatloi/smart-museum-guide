@@ -11,6 +11,7 @@ export function NotFoundPage() {
       tone="error"
       title={t(language, 'invalidQrTitle')}
       body={t(language, 'invalidQrBody')}
+      eyebrow={t(language, 'appName')}
       action={
         <Link
           className="bg-museum-deep px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-museum-accent active:translate-y-px"

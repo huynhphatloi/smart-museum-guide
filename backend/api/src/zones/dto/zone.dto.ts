@@ -1,4 +1,12 @@
-import { IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 
 const ZONE_CODE_PATTERN = /^[A-Z0-9_-]+$/;
@@ -44,6 +52,19 @@ export class UpdateZoneDto {
   @IsString()
   @MaxLength(40)
   floor?: string;
+
+  /** The room plan this zone is drawn on; null takes it off the map. */
+  @IsOptional()
+  @IsUUID()
+  floorPlanId?: string | null;
+
+  /**
+   * Outline in metres - checked in the service with parseMapShape, since
+   * class-validator cannot express the circle / polygon union. null clears it.
+   */
+  @IsOptional()
+  @IsObject()
+  mapShape?: Record<string, unknown> | null;
 }
 
 export class QueryZonesDto extends PaginationQueryDto {}

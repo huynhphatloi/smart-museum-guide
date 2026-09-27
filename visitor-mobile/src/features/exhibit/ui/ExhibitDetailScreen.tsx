@@ -64,7 +64,16 @@ export function ExhibitDetailScreen({ route }: Props) {
   return (
     <Screen style={styles.screen}>
       {hero ? (
-        <Image source={{ uri: hero.url }} style={styles.hero} resizeMode="cover" />
+        <View>
+          <Image
+            source={{ uri: hero.url }}
+            style={styles.hero}
+            resizeMode="contain"
+            accessible
+            accessibilityLabel={content.title}
+          />
+          {hero.caption ? <Text style={styles.caption}>{hero.caption}</Text> : null}
+        </View>
       ) : (
         <View style={styles.heroFallback}>
           <MuseumMark />
@@ -141,14 +150,19 @@ const styles = StyleSheet.create({
   hero: {
     width: '100%',
     height: 330,
-    borderTopLeftRadius: theme.radius.arch,
-    borderTopRightRadius: theme.radius.arch,
+    borderRadius: 2,
     marginBottom: theme.spacing(3),
+  },
+  caption: {
+    color: theme.colors.muted,
+    fontFamily: theme.type.body,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: theme.spacing(2),
   },
   heroFallback: {
     height: 300,
-    borderTopLeftRadius: theme.radius.arch,
-    borderTopRightRadius: theme.radius.arch,
+    borderRadius: 2,
     backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -175,8 +189,8 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     color: theme.colors.ink,
-    fontFamily: theme.type.display,
-    fontSize: 18,
+    fontFamily: theme.type.body,
+    fontSize: 16,
     lineHeight: 29,
     marginBottom: theme.spacing(2),
   },

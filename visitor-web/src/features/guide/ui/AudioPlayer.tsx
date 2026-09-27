@@ -4,6 +4,7 @@ interface Props {
   src: string | null;
   title: string;
   emptyLabel: string;
+  label: string;
 }
 
 /**
@@ -11,7 +12,7 @@ interface Props {
  * when sound starts. Also resets whenever the language (and therefore the
  * narration track) changes.
  */
-export function AudioPlayer({ src, title, emptyLabel }: Props) {
+export function AudioPlayer({ src, title, emptyLabel, label }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -27,11 +28,11 @@ export function AudioPlayer({ src, title, emptyLabel }: Props) {
   }
 
   return (
-    <div className="border-l-2 border-museum-brass bg-museum-brass-soft p-5">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-museum-brass">
-        Audio guide
+    <div className="border border-museum-line bg-museum-paper p-5 sm:p-6">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-museum-accent">
+        {label}
       </p>
-      <p className="mb-3 text-sm font-semibold">{title}</p>
+      <p className="mb-4 font-serif text-xl font-medium">{title}</p>
       {failed ? (
         <p className="text-sm text-red-700">{emptyLabel}</p>
       ) : (

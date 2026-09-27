@@ -97,6 +97,57 @@ export class ExhibitNotPublishedException extends AppException {
   }
 }
 
+export class FloorPlanNotFoundException extends AppException {
+  constructor(ref: string) {
+    super(
+      ErrorCode.FLOOR_PLAN_NOT_FOUND,
+      `Floor plan "${ref}" was not found.`,
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+export class SurveyPointNotFoundException extends AppException {
+  constructor(ref: string) {
+    super(
+      ErrorCode.SURVEY_POINT_NOT_FOUND,
+      `Survey point "${ref}" was not found.`,
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+export class SurveyCaptureNotFoundException extends AppException {
+  constructor(ref: string) {
+    super(
+      ErrorCode.SURVEY_CAPTURE_NOT_FOUND,
+      `Survey capture "${ref}" was not found.`,
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+/** A survey point, or a resize, that would put something outside the room. */
+export class SurveyPointOutsidePlanException extends AppException {
+  constructor(message: string) {
+    super(ErrorCode.OUTSIDE_FLOOR_PLAN, message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+/** A zone outline that is malformed or does not fit on its floor plan. */
+export class MapShapeInvalidException extends AppException {
+  constructor(message: string) {
+    super(ErrorCode.MAP_SHAPE_INVALID, message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+/** A calibration upload whose samples or fingerprint cannot be trusted. */
+export class CaptureInvalidException extends AppException {
+  constructor(message: string) {
+    super(ErrorCode.CAPTURE_INVALID, message, HttpStatus.BAD_REQUEST);
+  }
+}
+
 export class ScheduleOverlapException extends AppException {
   constructor(details: unknown) {
     super(

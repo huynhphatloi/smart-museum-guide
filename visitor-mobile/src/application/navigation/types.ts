@@ -2,6 +2,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type MainTabParamList = {
   Explore: undefined;
+  Map: undefined;
   Qr: undefined;
   Settings: undefined;
 };
@@ -11,6 +12,8 @@ export type RootStackParamList = {
   Permission: undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   ExhibitDetail: { autoPlay?: boolean } | undefined;
+  /** Staff tool: record fingerprints for indoor positioning. */
+  Calibration: undefined;
 };
 
 declare global {

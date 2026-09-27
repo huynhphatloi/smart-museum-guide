@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ExhibitsModule } from '../exhibits/exhibits.module';
 import { LanguagesModule } from '../languages/languages.module';
+import { PositioningModule } from '../positioning/positioning.module';
 import { PublicGuideController } from './public-guide.controller';
 import { PublicGuideService } from './public-guide.service';
 
 @Module({
-  imports: [ExhibitsModule, LanguagesModule],
+  imports: [ExhibitsModule, LanguagesModule, PositioningModule],
   controllers: [PublicGuideController],
   providers: [PublicGuideService],
 })

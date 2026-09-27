@@ -11,6 +11,7 @@ import React, {
 import { ApiError, api } from '../../../shared/api/client';
 import { ActiveExhibitResponse, LanguageOption } from '../../../shared/api/types';
 import { env } from '../../../shared/config/env';
+import { t } from '../../../shared/i18n';
 import { RegisteredBeacon, findZoneName } from '../../beacon-detection/model/beacon-registry';
 import { BeaconScanner, DEFAULT_SCANNER_CONFIG } from '../../beacon-detection/model/scanner';
 import { RealBleSignalSource } from '../../beacon-detection/model/sources/real-ble-source';
@@ -45,12 +46,23 @@ interface GuideContextValue {
   setLanguage: (language: string) => void;
 
   registryError: string | null;
+  /** The museum's beacon registry, as downloaded at startup. */
+  registry: RegisteredBeacon[];
+  /** Downloads the registry again and applies it to the running scanner. */
+  reloadRegistry: () => Promise<void>;
 
   scanning: boolean;
   bleError: string | null;
   snapshot: DetectionSnapshot;
   startScanning: () => Promise<void>;
   stopScanning: () => Promise<void>;
+  /**
+   * The running pipeline, for features that listen to the same signals
+   * (indoor positioning, zone notifications). Null until scanning first starts.
+   */
+  scanner: BeaconScanner | null;
+  /** The simulator feeding the pipeline, when running in simulation mode. */
+  simulator: SimulatedBleSignalSource | null;
 
   autoGuide: boolean;
   setAutoGuide: (value: boolean) => void;
@@ -99,6 +111,8 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   const [scanning, setScanning] = useState(false);
   const [bleError, setBleError] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<DetectionSnapshot>(EMPTY_SNAPSHOT);
+  const [activeScanner, setActiveScanner] = useState<BeaconScanner | null>(null);
+  const [simulator, setSimulator] = useState<SimulatedBleSignalSource | null>(null);
 
   const [exhibit, setExhibit] = useState<ActiveExhibitResponse | null>(null);
   const [exhibitLoading, setExhibitLoading] = useState(false);
@@ -106,6 +120,9 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   const [prompt, setPrompt] = useState<ZonePrompt | null>(null);
   const scannerRef = useRef<BeaconScanner | null>(null);
   const realSourceRef = useRef<RealBleSignalSource | null>(null);
+  const lastExhibitRequest = useRef<
+    { kind: 'beacon'; identifier: string } | { kind: 'zone'; code: string } | null
+  >(null);
   const languageRef = useRef(language);
   const autoGuideRef = useRef(autoGuide);
 
@@ -120,10 +137,9 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       setRegistry(beacons);
       setRegistryError(null);
       realSourceRef.current?.setRegistry(beacons);
-    } catch (error) {
-      setRegistryError(
-        error instanceof ApiError ? error.message : 'Could not load the beacon list.',
-      );
+      scannerRef.current?.setRegistry(beacons);
+    } catch {
+      setRegistryError(t(languageRef.current, 'beaconListError'));
     }
   }, []);
 
@@ -168,6 +184,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   // --- content resolution --------------------------------------------------
 
   const loadExhibitForBeacon = useCallback(async (identifier: string) => {
+    lastExhibitRequest.current = { kind: 'beacon', identifier };
     setExhibitLoading(true);
     setExhibitError(null);
     try {
@@ -184,6 +201,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const openZone = useCallback(async (zoneCode: string) => {
+    lastExhibitRequest.current = { kind: 'zone', code: zoneCode };
     setExhibitLoading(true);
     setExhibitError(null);
     try {
@@ -200,19 +218,15 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const reloadExhibit = useCallback(async () => {
-    const beacon = snapshot.confirmedBeacon;
-    if (beacon) return loadExhibitForBeacon(beacon);
-    if (exhibit) return openZone(exhibit.zone.code);
-  }, [snapshot.confirmedBeacon, exhibit, loadExhibitForBeacon, openZone]);
+    const request = lastExhibitRequest.current;
+    if (request?.kind === 'beacon') return loadExhibitForBeacon(request.identifier);
+    if (request?.kind === 'zone') return openZone(request.code);
+  }, [loadExhibitForBeacon, openZone]);
 
   // Re-fetch the current content whenever the visitor switches language.
   useEffect(() => {
     if (!ready) return;
-    if (snapshot.confirmedBeacon) {
-      void loadExhibitForBeacon(snapshot.confirmedBeacon);
-    } else if (exhibit) {
-      void openZone(exhibit.zone.code);
-    }
+    void reloadExhibit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -243,7 +257,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (registry.length === 0) {
-      setBleError('No beacons are registered yet. Check the API connection.');
+      setBleError(t(languageRef.current, 'noBeacons'));
       return;
     }
 
@@ -265,18 +279,19 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
         simulatedBeaconsFromRegistry(registry, (_beacon, index) => (index === 0 ? -62 : -88)),
       );
       source = simulated;
+      setSimulator(simulated);
     } else {
       const real = new RealBleSignalSource(registry, {
         onFailure: (reason) => {
-          setBleError(
+          const key =
             reason === 'BLUETOOTH_OFF'
-              ? 'Bluetooth is turned off. Turn it on to use the automatic guide.'
+              ? 'bluetoothOff'
               : reason === 'PERMISSION_DENIED'
-                ? 'Bluetooth permission was denied. You can still use QR codes.'
+                ? 'bluetoothDenied'
                 : reason === 'UNSUPPORTED'
-                  ? 'This device does not support Bluetooth Low Energy.'
-                  : 'Bluetooth scanning failed. You can still use QR codes.',
-          );
+                  ? 'bluetoothUnsupported'
+                  : 'bluetoothFailed';
+          setBleError(t(languageRef.current, key));
           setScanning(false);
         },
       });
@@ -288,6 +303,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     scanner.onSnapshot(setSnapshot);
     scanner.onZoneConfirmed((event) => handleZoneConfirmed(event, registry));
     scannerRef.current = scanner;
+    setActiveScanner(scanner);
 
     setBleError(null);
     await scanner.start();
@@ -325,11 +341,15 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       languageOptions,
       setLanguage,
       registryError,
+      registry,
+      reloadRegistry,
       scanning,
       bleError,
       snapshot,
       startScanning,
       stopScanning,
+      scanner: activeScanner,
+      simulator,
       autoGuide,
       setAutoGuide,
       exhibit,
@@ -346,11 +366,15 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       languageOptions,
       setLanguage,
       registryError,
+      registry,
+      reloadRegistry,
       scanning,
       bleError,
       snapshot,
       startScanning,
       stopScanning,
+      activeScanner,
+      simulator,
       autoGuide,
       setAutoGuide,
       exhibit,

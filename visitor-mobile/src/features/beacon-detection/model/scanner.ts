@@ -1,6 +1,6 @@
 import { RegisteredBeacon, buildMinRssiLookup, buildZoneLookup } from './beacon-registry';
 import { DEFAULT_SIGNAL_CONFIG, SignalProcessor, SignalProcessorConfig } from './signal-processor';
-import { BeaconSignalSource, DetectionSnapshot, ZoneConfirmedEvent } from './types';
+import { BeaconSignal, BeaconSignalSource, DetectionSnapshot, ZoneConfirmedEvent } from './types';
 import { BeaconZoneDetector, DEFAULT_DETECTOR_CONFIG, ZoneDetectorConfig } from './zone-detector';
 
 export interface ScannerConfig extends SignalProcessorConfig, ZoneDetectorConfig {
@@ -30,6 +30,7 @@ export class BeaconScanner {
 
   private readonly snapshotListeners = new Set<(snapshot: DetectionSnapshot) => void>();
   private readonly zoneListeners = new Set<(event: ZoneConfirmedEvent) => void>();
+  private readonly signalListeners = new Set<(signal: BeaconSignal) => void>();
 
   constructor(
     private source: BeaconSignalSource,
@@ -50,6 +51,15 @@ export class BeaconScanner {
 
   get sourceDescription(): string {
     return this.source.description;
+  }
+
+  /**
+   * Applies a reloaded registry to the running pipeline: a zone reach
+   * (minRssi) tuned in the CMS or the calibration tool works without a restart.
+   */
+  setRegistry(registry: readonly RegisteredBeacon[]): void {
+    this.detector.setZoneLookup(buildZoneLookup(registry));
+    this.detector.setMinRssiLookup(buildMinRssiLookup(registry));
   }
 
   getConfig(): ScannerConfig {
@@ -75,11 +85,26 @@ export class BeaconScanner {
     };
   }
 
+  /**
+   * Every raw reading, before any windowing. Indoor positioning and the staff
+   * calibration tool run their own processing on the same stream, so tuning
+   * them never changes how zones are detected.
+   */
+  onSignal(listener: (signal: BeaconSignal) => void): () => void {
+    this.signalListeners.add(listener);
+    return () => {
+      this.signalListeners.delete(listener);
+    };
+  }
+
   async start(): Promise<void> {
     if (this.timer !== null) return;
 
     this.detector.start();
-    this.unsubscribeSource = this.source.subscribe((signal) => this.processor.ingest(signal));
+    this.unsubscribeSource = this.source.subscribe((signal) => {
+      this.processor.ingest(signal);
+      this.signalListeners.forEach((listener) => listener(signal));
+    });
     await this.source.start();
 
     this.timer = setInterval(() => this.tick(Date.now()), this.config.tickIntervalMs);

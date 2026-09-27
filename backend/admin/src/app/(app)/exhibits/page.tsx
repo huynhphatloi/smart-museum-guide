@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListPagination } from '@/components/ui/list-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -23,17 +24,19 @@ import { useI18n } from '@/lib/i18n';
 import { Exhibit, ExhibitStatus, Paginated } from '@/lib/types';
 
 const STATUS_FILTERS: (ExhibitStatus | 'ALL')[] = ['ALL', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
+const PAGE_SIZE = 25;
 
 export default function ExhibitsPage() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<ExhibitStatus | 'ALL'>('ALL');
+  const [page, setPage] = useState(1);
 
   const exhibitsQuery = useQuery({
-    queryKey: ['exhibits', status],
+    queryKey: ['exhibits', status, page],
     queryFn: () =>
       apiFetch<Paginated<Exhibit>>(
-        `/admin/exhibits?pageSize=100${status === 'ALL' ? '' : `&status=${status}`}`,
+        `/admin/exhibits?page=${page}&pageSize=${PAGE_SIZE}${status === 'ALL' ? '' : `&status=${status}`}`,
       ),
   });
 
@@ -41,6 +44,7 @@ export default function ExhibitsPage() {
     mutationFn: (id: string) => apiFetch<void>(`/admin/exhibits/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast.success(t('exhibitDeleted'));
+      setPage(1);
       void queryClient.invalidateQueries({ queryKey: ['exhibits'] });
     },
     onError: (error) =>
@@ -68,9 +72,12 @@ export default function ExhibitsPage() {
             key={option}
             size="sm"
             variant={status === option ? 'default' : 'outline'}
-            onClick={() => setStatus(option)}
+            onClick={() => {
+              setStatus(option);
+              setPage(1);
+            }}
           >
-            {option}
+            {t(`filter${option}`)}
           </Button>
         ))}
       </div>
@@ -85,93 +92,116 @@ export default function ExhibitsPage() {
         <CardContent className="p-0">
           {exhibitsQuery.isLoading ? (
             <Skeleton className="m-6 h-40" />
+          ) : exhibitsQuery.isError ? (
+            <div className="p-6" role="alert">
+              <EmptyState
+                title={t('listLoadError')}
+                description={t('listLoadErrorHint')}
+                action={<Button onClick={() => void exhibitsQuery.refetch()}>{t('retry')}</Button>}
+              />
+            </div>
           ) : !exhibitsQuery.data?.items.length ? (
             <div className="p-6">
               <EmptyState title={t('noExhibits')} description={t('noExhibitsHint')} />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('code')}</TableHead>
-                  <TableHead>{t('colTitle')}</TableHead>
-                  <TableHead>{t('colLanguages')}</TableHead>
-                  <TableHead>{t('colMedia')}</TableHead>
-                  <TableHead>{t('colScheduled')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {exhibitsQuery.data.items.map((exhibit) => (
-                  <TableRow key={exhibit.id}>
-                    <TableCell>
-                      <Link
-                        className="font-medium hover:underline"
-                        href={`/exhibits/${exhibit.id}`}
-                      >
-                        {exhibit.code}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{exhibit.defaultTitle}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {exhibit.translations?.length ? (
-                          exhibit.translations.map((translation) => (
-                            <Badge key={translation.id} variant="secondary">
-                              {translation.languageCode}
-                            </Badge>
-                          ))
-                        ) : (
-                          <Badge variant="warning">{t('none')}</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {exhibit._count?.media ?? 0}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {exhibit._count?.assignments ?? 0}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          exhibit.status === 'PUBLISHED'
-                            ? 'success'
-                            : exhibit.status === 'DRAFT'
-                              ? 'warning'
-                              : 'secondary'
-                        }
-                      >
-                        {exhibit.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/exhibits/${exhibit.id}`}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            {t('edit')}
-                          </Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={deleteExhibit.isPending && deleteExhibit.variables === exhibit.id}
-                          onClick={() => {
-                            if (window.confirm(t('deleteExhibitConfirm', { code: exhibit.code }))) {
-                              deleteExhibit.mutate(exhibit.id);
-                            }
-                          }}
-                        >
-                          {t('delete')}
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('code')}</TableHead>
+                    <TableHead>{t('colTitle')}</TableHead>
+                    <TableHead>{t('colLanguages')}</TableHead>
+                    <TableHead>{t('colMedia')}</TableHead>
+                    <TableHead>{t('colScheduled')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {exhibitsQuery.data.items.map((exhibit) => (
+                    <TableRow key={exhibit.id}>
+                      <TableCell>
+                        <Link
+                          className="font-medium hover:underline"
+                          href={`/exhibits/${exhibit.id}`}
+                        >
+                          {exhibit.code}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{exhibit.defaultTitle}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {exhibit.translations?.length ? (
+                            exhibit.translations.map((translation) => (
+                              <Badge key={translation.id} variant="secondary">
+                                {translation.languageCode}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="warning">{t('none')}</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {exhibit._count?.media ?? 0}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {exhibit._count?.assignments ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            exhibit.status === 'PUBLISHED'
+                              ? 'success'
+                              : exhibit.status === 'DRAFT'
+                                ? 'warning'
+                                : 'secondary'
+                          }
+                        >
+                          {exhibit.status === 'PUBLISHED' ? t('filterPUBLISHED') : exhibit.status === 'DRAFT' ? t('filterDRAFT') : t('filterARCHIVED')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/exhibits/${exhibit.id}`}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              {t('edit')}
+                            </Link>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={
+                              deleteExhibit.isPending && deleteExhibit.variables === exhibit.id
+                            }
+                            onClick={() => {
+                              if (
+                                window.confirm(t('deleteExhibitConfirm', { code: exhibit.code }))
+                              ) {
+                                deleteExhibit.mutate(exhibit.id);
+                              }
+                            }}
+                          >
+                            {t('delete')}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ListPagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={exhibitsQuery.data.total}
+                onPageChange={setPage}
+                previousLabel={t('previousPage')}
+                nextLabel={t('nextPage')}
+                rangeLabel={t('resultRange')}
+              />
+            </>
           )}
         </CardContent>
       </Card>

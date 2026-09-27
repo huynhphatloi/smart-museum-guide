@@ -2,11 +2,12 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useState } from 'react';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { RootStackParamList } from '../../../application/navigation/types';
 import { t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
-import { Body, Eyebrow, MuseumMark, Row, Screen, Subtitle, Title } from '../../../shared/ui';
+import { Body, Eyebrow, Row, Screen, Subtitle, Title } from '../../../shared/ui';
 import { useGuide } from '../../tour/model/GuideContext';
 import { zoneCodeFromQr } from '../api/qr';
 
@@ -46,7 +47,7 @@ export function QrScreen() {
           <Title>{t(language, 'qrTitle')}</Title>
           <Body>{t(language, 'qrBody')}</Body>
         </View>
-        <MuseumMark compact />
+
       </Row>
 
       {scannerActive && permission?.granted ? (
@@ -71,11 +72,7 @@ export function QrScreen() {
           onPress={() => void openScanner()}
           style={({ pressed }) => [styles.scanInvitation, pressed && styles.pressed]}
         >
-          <View style={styles.qrGlyph}>
-            <View style={styles.qrSquare} />
-            <View style={[styles.qrSquare, styles.qrSquareRight]} />
-            <View style={[styles.qrSquare, styles.qrSquareBottom]} />
-          </View>
+          <Svg width={66} height={66} viewBox="0 0 64 64" fill="none" stroke={theme.colors.accentDark} strokeWidth={3} strokeLinecap="round" style={styles.scanIcon}><Path d="M5 21V5h16M43 5h16v16M5 43v16h16M59 43v16H43" /><Rect x={22} y={22} width={20} height={20} rx={2} /></Svg>
           <Subtitle>{t(language, 'qrTitle')}</Subtitle>
           {permission?.granted === false ? <Body>{t(language, 'qrPermission')}</Body> : null}
         </Pressable>
@@ -118,8 +115,7 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1, paddingRight: theme.spacing(2) },
   cameraFrame: {
     height: 360,
-    borderTopLeftRadius: 120,
-    borderTopRightRadius: 120,
+    borderRadius: 2,
     overflow: 'hidden',
     backgroundColor: theme.colors.ink,
   },
@@ -162,24 +158,14 @@ const styles = StyleSheet.create({
   },
   scanInvitation: {
     minHeight: 286,
-    borderTopLeftRadius: 120,
-    borderTopRightRadius: 120,
+    borderRadius: 2,
     backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: theme.spacing(4),
   },
   pressed: { opacity: 0.75 },
-  qrGlyph: { width: 70, height: 70, marginBottom: theme.spacing(2.5) },
-  qrSquare: {
-    position: 'absolute',
-    width: 26,
-    height: 26,
-    borderWidth: 5,
-    borderColor: theme.colors.accentDark,
-  },
-  qrSquareRight: { right: 0 },
-  qrSquareBottom: { bottom: 0 },
+  scanIcon: { marginBottom: theme.spacing(3) },
   manualSection: {
     borderTopWidth: 1,
     borderColor: theme.colors.line,

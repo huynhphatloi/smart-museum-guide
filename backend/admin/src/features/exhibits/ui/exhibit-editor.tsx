@@ -158,7 +158,7 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
     mutationFn: (action: 'publish' | 'archive') =>
       apiFetch<Exhibit>(`/admin/exhibits/${exhibit!.id}/${action}`, { method: 'POST' }),
     onSuccess: (updated) => {
-      toast.success(t('exhibitNowStatus', { status: updated.status }));
+      toast.success(t('exhibitNowStatus', { status: updated.status === 'PUBLISHED' ? t('filterPUBLISHED') : updated.status === 'DRAFT' ? t('filterDRAFT') : t('filterARCHIVED') }));
       invalidate(updated.id);
     },
     onError: (error) =>
@@ -287,6 +287,30 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
   }
 
   const savedMedia: ExhibitMedia[] = exhibit?.media ?? [];
+  const readiness = exhibit
+    ? [
+        {
+          label: t('readinessCopy'),
+          ready: translations.some((row) => row.title.trim() && row.description?.trim()),
+          optional: false,
+        },
+        {
+          label: t('readinessImage'),
+          ready: savedMedia.some((item) => item.type === 'IMAGE'),
+          optional: false,
+        },
+        {
+          label: t('readinessAudio'),
+          ready: translations.some((row) => Boolean(row.audioUrl)),
+          optional: true,
+        },
+        {
+          label: t('readinessPlacement'),
+          ready: Boolean(exhibit.assignments?.length),
+          optional: true,
+        },
+      ]
+    : [];
   const selectedLanguages = [
     primaryLanguage,
     ...variants.filter((code) => code !== primaryLanguage),
@@ -320,7 +344,7 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
                       : 'secondary'
                 }
               >
-                {exhibit.status}
+                {exhibit.status === 'PUBLISHED' ? t('filterPUBLISHED') : exhibit.status === 'DRAFT' ? t('filterDRAFT') : t('filterARCHIVED')}
               </Badge>
             </div>
           ) : null}
@@ -347,6 +371,37 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
           </div>
         ) : null}
       </div>
+
+      {exhibit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('readinessTitle')}</CardTitle>
+            <CardDescription>{t('readinessHint')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {readiness.map((item) => (
+                <li key={item.label} className="flex items-center gap-2 text-sm">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'h-2 w-2 shrink-0 rounded-full',
+                      item.ready ? 'bg-emerald-600' : 'bg-amber-500',
+                    )}
+                  />
+                  <span>{item.label}</span>
+                  {item.optional ? (
+                    <span className="text-xs text-muted-foreground">({t('readinessOptional')})</span>
+                  ) : null}
+                  <span className="sr-only">
+                    {item.ready ? t('readinessReady') : t('readinessMissing')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <form className="space-y-6" onSubmit={handleSubmit} autoComplete="off">
         <Card>

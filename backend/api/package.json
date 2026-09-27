@@ -21,6 +21,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:reset": "prisma migrate reset --force",
     "prisma:seed": "prisma db seed",
+    "prisma:seed-collection": "ts-node --transpile-only -r dotenv/config prisma/seed-collection.ts",
+    "prisma:seed-positioning": "ts-node --transpile-only prisma/seed-positioning.ts",
     "prisma:studio": "prisma studio"
   },
   "prisma": {

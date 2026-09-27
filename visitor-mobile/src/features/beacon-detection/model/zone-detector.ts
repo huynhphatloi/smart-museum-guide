@@ -66,7 +66,7 @@ export class BeaconZoneDetector {
   private readonly lastNotifiedAt = new Map<string, number>();
 
   constructor(
-    private readonly lookupZone: ZoneLookup,
+    private lookupZone: ZoneLookup,
     private config: ZoneDetectorConfig = DEFAULT_DETECTOR_CONFIG,
     private lookupMinRssi: MinRssiLookup = () => undefined,
   ) {}
@@ -74,6 +74,11 @@ export class BeaconZoneDetector {
   /** Refreshed when the registry reloads, so a CMS change takes effect live. */
   setMinRssiLookup(lookup: MinRssiLookup): void {
     this.lookupMinRssi = lookup;
+  }
+
+  /** Refreshed with the registry, so a beacon moved to another zone follows live. */
+  setZoneLookup(lookup: ZoneLookup): void {
+    this.lookupZone = lookup;
   }
 
   /** Allows the scanner to refresh centrally supplied detector configuration. */

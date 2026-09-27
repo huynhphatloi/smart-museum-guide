@@ -8,6 +8,7 @@ import { ActiveExhibitResponse } from '../model/types';
 import { ExhibitSkeleton } from './ExhibitSkeleton';
 import { ExhibitView } from './ExhibitView';
 import { StateScreen } from './StateScreen';
+import { ZoneMap } from './ZoneMap';
 
 type Status = 'loading' | 'ready' | 'error';
 
@@ -74,20 +75,14 @@ export function ZonePage() {
   }
 
   const header = (
-    <header className="sticky top-0 z-10 bg-museum-deep text-white">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5 md:px-8">
-        <Link to="/" className="flex items-center gap-3 font-serif text-base">
-          <span className="flex h-9 w-8 items-end rounded-t-full bg-white/15 p-1" aria-hidden>
-            <span className="h-5 w-full rounded-t-full bg-museum-brass" />
-          </span>
-          {t(language, 'appName')}
+    <header className="sticky top-0 z-10 border-b border-museum-line bg-museum-bg/95 backdrop-blur">
+      <div className="mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-14">
+        <Link to="/" className="flex items-center gap-3 text-sm font-semibold text-museum-ink">
+          <span className="flex h-8 w-8 items-center justify-center border border-museum-ink font-serif text-lg leading-none" aria-hidden="true">M</span>
+          <span className="hidden sm:inline">{t(language, 'appName')}</span>
+          <span className="sm:hidden">Museum Guide</span>
         </Link>
-        <LanguageSelector
-          languages={languages}
-          value={language}
-          onChange={handleLanguageChange}
-          label={t(language, 'language')}
-        />
+        <LanguageSelector languages={languages} value={language} onChange={handleLanguageChange} label={t(language, 'language')} />
       </div>
     </header>
   );
@@ -116,13 +111,26 @@ export function ZonePage() {
           tone="error"
           title={screen.title}
           body={screen.body}
+          eyebrow={zoneCode}
           action={
-            <button
-              className="bg-museum-deep px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-museum-accent active:translate-y-px"
-              onClick={() => load()}
-            >
-              {t(language, 'retry')}
-            </button>
+            <div className="flex flex-wrap items-center gap-5">
+              {error.code !== 'ZONE_NOT_FOUND' &&
+              error.code !== 'NO_ACTIVE_EXHIBIT' &&
+              error.code !== 'EXHIBIT_NOT_PUBLISHED' ? (
+                <button
+                  className="bg-museum-deep px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-museum-accent active:translate-y-px"
+                  onClick={() => load()}
+                >
+                  {t(language, 'retry')}
+                </button>
+              ) : null}
+              <Link
+                className="text-sm font-semibold text-museum-accent underline underline-offset-4"
+                to="/"
+              >
+                {t(language, 'enterAnotherCode')}
+              </Link>
+            </div>
           }
         />
       </>
@@ -133,6 +141,7 @@ export function ZonePage() {
     <>
       {header}
       {data ? <ExhibitView data={data} language={language} /> : null}
+      {data ? <ZoneMap zoneCode={data.zone.code} language={language} /> : null}
       <footer className="border-t border-museum-line py-8 text-center text-xs text-museum-muted">
         {t(language, 'poweredBy')}
       </footer>

@@ -209,6 +209,10 @@ npm run android
 
 Use `npm run start:go` only for flows that do not require native BLE scanning.
 
+## Indoor positioning map
+
+The mobile app's **Map** tab positions the visitor in a room by BLE fingerprinting (weighted k-nearest neighbours), while the zone detector keeps triggering narration and "you are near …" notifications. Staff calibrate each phone with the in-app calibration mode (`EXPO_PUBLIC_STAFF_TOOLS=true`), draw rooms in the CMS under **Maps**, and measure accuracy with `npm run eval:positioning` in `visitor-mobile/`. `npm run db:seed-positioning` (in `backend/`) creates a 5 × 5 m demo room without touching other data. See [docs/indoor-positioning.md](docs/indoor-positioning.md).
+
 ## Project commands
 
 ### Backend

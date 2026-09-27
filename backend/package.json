@@ -27,6 +27,8 @@
     "db:generate": "npm --workspace api run prisma:generate",
     "db:migrate": "npm --workspace api run prisma:migrate",
     "db:seed": "npm --workspace api run prisma:seed",
+    "db:seed-collection": "npm --workspace api run prisma:seed-collection --",
+    "db:seed-positioning": "npm --workspace api run prisma:seed-positioning",
     "db:reset": "npm --workspace api run prisma:reset",
     "db:studio": "npm --workspace api run prisma:studio",
     "format": "prettier --write \"{api,admin}/src/**/*.{ts,tsx,js,jsx,json,css,md}\""

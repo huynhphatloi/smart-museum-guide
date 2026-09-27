@@ -1,13 +1,19 @@
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { RootStackParamList } from '../../../application/navigation/types';
+import { env } from '../../../shared/config/env';
 import { t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
-import { Body, Eyebrow, MuseumMark, Row, Screen, Subtitle, Title } from '../../../shared/ui';
+import { Body, Eyebrow, Row, Screen, Subtitle, Title } from '../../../shared/ui';
+import { pt } from '../../indoor-positioning/i18n';
 import { useGuide } from '../../tour/model/GuideContext';
 import { LanguagePicker } from './LanguagePicker';
 
 export function SettingsScreen() {
   const { language, languageOptions, setLanguage, autoGuide, setAutoGuide } = useGuide();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <Screen>
@@ -16,7 +22,7 @@ export function SettingsScreen() {
           <Eyebrow>{t(language, 'visitorPreferences')}</Eyebrow>
           <Title>{t(language, 'settings')}</Title>
         </View>
-        <MuseumMark compact />
+
       </Row>
 
       <View style={styles.section}>
@@ -47,8 +53,18 @@ export function SettingsScreen() {
         </Row>
       </View>
 
+      {env.staffTools ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('Calibration')}
+          style={({ pressed }) => [styles.section, pressed && styles.pressed]}
+        >
+          <Subtitle>{pt(language, 'calibrationEntry')}</Subtitle>
+          <Body>{pt(language, 'calibrationEntryHelp')}</Body>
+        </Pressable>
+      ) : null}
+
       <View style={styles.about}>
-        <Text style={styles.aboutNumber}>01</Text>
         <View style={styles.aboutCopy}>
           <Eyebrow>{t(language, 'about')}</Eyebrow>
           <Body>{t(language, 'aboutBody')}</Body>
@@ -67,20 +83,16 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing(2),
     paddingBottom: theme.spacing(2.5),
   },
+  pressed: { opacity: 0.6 },
   preferenceRow: { alignItems: 'center', justifyContent: 'space-between' },
   preferenceCopy: { flex: 1, paddingRight: theme.spacing(2) },
   about: {
     flexDirection: 'row',
     backgroundColor: theme.colors.paper,
+    borderWidth: 1,
+    borderColor: theme.colors.line,
     padding: theme.spacing(2.25),
     marginTop: theme.spacing(1),
-  },
-  aboutNumber: {
-    width: 50,
-    color: theme.colors.brass,
-    fontFamily: theme.type.display,
-    fontSize: 32,
-    lineHeight: 36,
   },
   aboutCopy: { flex: 1 },
 });

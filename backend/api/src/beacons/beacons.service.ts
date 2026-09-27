@@ -136,6 +136,8 @@ export class BeaconsService {
         txPower: dto.txPower ?? null,
         advertisingIntervalMs: dto.advertisingIntervalMs ?? null,
         minRssi: dto.minRssi ?? null,
+        mapX: dto.mapX ?? null,
+        mapY: dto.mapY ?? null,
         enabled: dto.enabled ?? true,
       },
       include: { zone: zoneSelect },
@@ -169,6 +171,8 @@ export class BeaconsService {
           : { advertisingIntervalMs: dto.advertisingIntervalMs }),
         // null is meaningful here: it hands this beacon back to the app default.
         ...(dto.minRssi === undefined ? {} : { minRssi: dto.minRssi }),
+        ...(dto.mapX === undefined ? {} : { mapX: dto.mapX }),
+        ...(dto.mapY === undefined ? {} : { mapY: dto.mapY }),
         ...(dto.enabled === undefined ? {} : { enabled: dto.enabled }),
         ...merged,
       },

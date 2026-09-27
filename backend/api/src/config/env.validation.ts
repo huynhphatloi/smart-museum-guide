@@ -70,6 +70,44 @@ const R2_REQUIRED = [
 
 /** The R2_* variables are only required once `MEDIA_STORAGE=r2` selects the bucket. */
 const validatedEnvSchema = envSchema.superRefine((value, ctx) => {
+  if (value.NODE_ENV === 'production') {
+    const isDemoHost = (url: URL) =>
+      url.hostname === 'localhost' ||
+      url.hostname.endsWith('.local') ||
+      url.hostname === 'example.com' ||
+      url.hostname.endsWith('.example.com');
+    const publicUrls = {
+      PUBLIC_BASE_URL: value.PUBLIC_BASE_URL,
+      VISITOR_WEB_URL: value.VISITOR_WEB_URL,
+    };
+    for (const [key, url] of Object.entries(publicUrls)) {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:' || isDemoHost(parsed)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: `${key} must use a real HTTPS domain in production`,
+        });
+      }
+    }
+    const origins = value.CORS_ORIGINS.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!origins.length) {
+      ctx.addIssue({ code: 'custom', path: ['CORS_ORIGINS'], message: 'CORS_ORIGINS is required in production' });
+    }
+    for (const origin of origins) {
+      if (!URL.canParse(origin) || new URL(origin).protocol !== 'https:' || isDemoHost(new URL(origin))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CORS_ORIGINS'],
+          message: 'Every CORS_ORIGINS entry must use a real HTTPS domain in production',
+        });
+        break;
+      }
+    }
+  }
+
   if (value.MEDIA_STORAGE !== 'r2') return;
   for (const key of R2_REQUIRED) {
     if (!value[key]?.trim()) {

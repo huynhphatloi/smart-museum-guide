@@ -11,6 +11,7 @@ import { ExhibitsModule } from './exhibits/exhibits.module';
 import { LocalizationModule } from './localization/localization.module';
 import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PositioningModule } from './positioning/positioning.module';
 import { PublicGuideModule } from './public-guide/public-guide.module';
 import { ZonesModule } from './zones/zones.module';
 
@@ -38,6 +39,7 @@ import { ZonesModule } from './zones/zones.module';
     LocalizationModule,
     AssignmentsModule,
     MediaModule,
+    PositioningModule,
     PublicGuideModule,
     DashboardModule,
   ],

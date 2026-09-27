@@ -3,13 +3,13 @@ import { format, isValid, parseISO } from 'date-fns';
 export function formatDate(value: string | null | undefined, fallback = 'Open ended'): string {
   if (!value) return fallback;
   const parsed = parseISO(value);
-  return isValid(parsed) ? format(parsed, 'dd MMM yyyy') : fallback;
+  return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : fallback;
 }
 
 export function formatDateTime(value: string | null | undefined, fallback = '-'): string {
   if (!value) return fallback;
   const parsed = parseISO(value);
-  return isValid(parsed) ? format(parsed, 'dd MMM yyyy HH:mm') : fallback;
+  return isValid(parsed) ? format(parsed, 'dd/MM/yyyy HH:mm') : fallback;
 }
 
 /** `2026-01-01T00:00:00.000Z` -> `2026-01-01`, for <input type="date">. */

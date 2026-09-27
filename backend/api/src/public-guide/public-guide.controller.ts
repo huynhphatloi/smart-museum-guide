@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { APP_CONFIG, AppConfig } from '../config/env.validation';
+import { PositioningService } from '../positioning/positioning.service';
 import { GuideQueryDto } from './dto/public-guide.dto';
 import { PublicGuideService } from './public-guide.service';
 
@@ -11,6 +12,7 @@ import { PublicGuideService } from './public-guide.service';
 export class PublicGuideController {
   constructor(
     private readonly guide: PublicGuideService,
+    private readonly positioning: PositioningService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -28,6 +30,21 @@ export class PublicGuideController {
   @Get('public/beacons')
   beacons() {
     return this.guide.listBeacons();
+  }
+
+  /**
+   * Room plans for the visitor map. Positioning itself runs on the phone - the
+   * server never learns where anyone is.
+   */
+  @Get('public/floor-plans')
+  floorPlans() {
+    return this.positioning.listPublicFloorPlans();
+  }
+
+  /** Calibration fingerprints the phone builds its radio map from. */
+  @Get('public/floor-plans/:id/fingerprints')
+  fingerprints(@Param('id') id: string) {
+    return this.positioning.listPublicFingerprints(id);
   }
 
   @Get('public/zones/:zoneCode')

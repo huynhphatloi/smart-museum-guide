@@ -2,10 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, Zone } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import { Paginated, paginate } from '../common/dto/pagination.dto';
-import { ResourceInUseException, ZoneNotFoundException } from '../common/errors/app.exception';
+import {
+  FloorPlanNotFoundException,
+  MapShapeInvalidException,
+  ResourceInUseException,
+  ZoneNotFoundException,
+} from '../common/errors/app.exception';
 import { APP_CONFIG, AppConfig } from '../config/env.validation';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { ExhibitResolverService } from '../exhibits/exhibit-resolver.service';
+import { parseMapShape, shapeFitsPlan } from '../positioning/map-shape';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateZoneDto, QueryZonesDto, UpdateZoneDto } from './dto/zone.dto';
 
@@ -108,8 +114,46 @@ export class ZonesService {
   }
 
   async update(id: string, dto: UpdateZoneDto): Promise<Zone> {
-    await this.assertExists(id);
-    return this.prisma.zone.update({ where: { id }, data: dto });
+    const zone = await this.prisma.zone.findUnique({ where: { id } });
+    if (!zone) throw new ZoneNotFoundException(id);
+
+    const { mapShape, floorPlanId, ...rest } = dto;
+    const targetPlanId = floorPlanId === undefined ? zone.floorPlanId : floorPlanId;
+
+    let shape: Prisma.InputJsonValue | typeof Prisma.DbNull | undefined;
+    if (mapShape === null) {
+      shape = Prisma.DbNull;
+    } else if (mapShape !== undefined) {
+      const parsed = parseMapShape(mapShape);
+      if (!parsed.ok) throw new MapShapeInvalidException(parsed.reason);
+      if (!targetPlanId) {
+        throw new MapShapeInvalidException('A zone needs a floor plan before it can have an outline.');
+      }
+      const plan = await this.prisma.floorPlan.findUnique({ where: { id: targetPlanId } });
+      if (!plan) throw new FloorPlanNotFoundException(targetPlanId);
+      if (!shapeFitsPlan(parsed.shape, plan.widthMeters, plan.heightMeters)) {
+        throw new MapShapeInvalidException(
+          `The outline does not fit on "${plan.name}" (${plan.widthMeters} x ${plan.heightMeters} m).`,
+        );
+      }
+      shape = parsed.shape;
+    }
+
+    if (floorPlanId) {
+      const count = await this.prisma.floorPlan.count({ where: { id: floorPlanId } });
+      if (count === 0) throw new FloorPlanNotFoundException(floorPlanId);
+    }
+
+    return this.prisma.zone.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(floorPlanId === undefined ? {} : { floorPlanId }),
+        // Leaving a plan drops the outline too - it was drawn in that plan's metres.
+        ...(floorPlanId === null && mapShape === undefined ? { mapShape: Prisma.DbNull } : {}),
+        ...(shape === undefined ? {} : { mapShape: shape }),
+      },
+    });
   }
 
   /** A zone may only be deleted once no beacon points at it. */

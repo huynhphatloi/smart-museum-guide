@@ -30,7 +30,7 @@ export default function DashboardPage() {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-52" />
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[0, 1, 2, 3].map((index) => (
             <Skeleton key={index} className="h-24" />
           ))}
@@ -64,22 +64,22 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">{t('dashboardTitle')}</h1>
+        <h1 className="font-serif text-4xl font-medium tracking-tight">{t('dashboardTitle')}</h1>
         <p className="text-sm text-muted-foreground">
           {t('dashboardGenerated', { time: formatDateTime(data.generatedAt) })}
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="border-l-[3px] border-l-primary">
             <CardHeader className="pb-2">
               <CardDescription>{stat.label}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-semibold">{stat.value}</p>
+              <p className="text-xl font-semibold tracking-tight sm:text-2xl">{stat.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -133,7 +133,7 @@ export default function DashboardPage() {
                             zone.currentExhibit.status === 'PUBLISHED' ? 'success' : 'warning'
                           }
                         >
-                          {zone.currentExhibit.status}
+                          {zone.currentExhibit.status === 'PUBLISHED' ? t('filterPUBLISHED') : zone.currentExhibit.status === 'DRAFT' ? t('filterDRAFT') : t('filterARCHIVED')}
                         </Badge>
                       </div>
                     ) : (

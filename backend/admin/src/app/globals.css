@@ -2,59 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face { font-family: 'Be Vietnam Pro'; src: url('/fonts/BeVietnamPro-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Be Vietnam Pro'; src: url('/fonts/BeVietnamPro-SemiBold.ttf') format('truetype'); font-weight: 600 800; font-display: swap; }
+@font-face { font-family: 'Newsreader'; src: url('/fonts/Newsreader.ttf') format('truetype'); font-weight: 300 700; font-display: swap; }
+
 @layer base {
   :root {
-    --background: 40 30% 96%;
-    --foreground: 32 14% 13%;
-    --card: 42 38% 98%;
-    --card-foreground: 32 14% 13%;
-    --popover: 42 38% 98%;
-    --popover-foreground: 32 14% 13%;
-    --primary: 6 48% 27%;
-    --primary-foreground: 42 38% 98%;
-    --secondary: 38 32% 88%;
-    --secondary-foreground: 32 14% 18%;
-    --muted: 39 23% 92%;
-    --muted-foreground: 34 9% 42%;
-    --accent: 37 34% 86%;
-    --accent-foreground: 6 48% 25%;
-    --destructive: 0 72% 45%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 36 21% 82%;
-    --input: 36 21% 82%;
-    --ring: 6 48% 32%;
-    --radius: 0.45rem;
+    --background: 40 27% 97%;
+    --foreground: 30 6% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 6% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 6% 15%;
+    --primary: 13 45% 28%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 23% 91%;
+    --secondary-foreground: 30 6% 18%;
+    --muted: 42 17% 94%;
+    --muted-foreground: 35 5% 39%;
+    --accent: 38 29% 89%;
+    --accent-foreground: 13 45% 28%;
+    --destructive: 0 65% 43%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 15% 84%;
+    --input: 35 15% 80%;
+    --ring: 13 45% 30%;
+    --radius: 0.35rem;
   }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    background-image: radial-gradient(
-      circle at 88% -10%,
-      hsl(37 34% 86% / 0.42),
-      transparent 30rem
-    );
-    font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
-    font-feature-settings:
-      'rlig' 1,
-      'calt' 1;
-  }
-
-  h1,
-  h2,
-  h3 {
-    font-family:
-      Iowan Old Style,
-      Baskerville,
-      Georgia,
-      serif;
-  }
-
-  :focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; font-family: 'Be Vietnam Pro', sans-serif; font-feature-settings: 'rlig' 1, 'calt' 1; }
+  h1, h2, h3 { font-family: 'Newsreader', Georgia, serif; font-weight: 500; }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 }

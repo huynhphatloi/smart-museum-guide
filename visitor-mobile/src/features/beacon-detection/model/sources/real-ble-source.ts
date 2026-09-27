@@ -1,4 +1,4 @@
-import { BleError, BleManager, Device, State, Subscription } from 'react-native-ble-plx';
+import { BleError, BleManager, Device, ScanMode, State, Subscription } from 'react-native-ble-plx';
 import { readAdvertisement } from '../advertisement';
 import { RegisteredBeacon, buildBeaconIndex, matchBeacon } from '../beacon-registry';
 import { EDDYSTONE_SERVICE_UUID } from '../eddystone';
@@ -117,8 +117,10 @@ export class RealBleSignalSource implements BeaconSignalSource {
     manager.startDeviceScan(
       serviceUuids,
       // Museum beacons advertise continuously; duplicates are exactly what the
-      // sliding window needs.
-      { allowDuplicates: true },
+      // sliding window needs. Android defaults to LowPower, which listens for
+      // roughly 0.5 s out of every 5 s - too few samples for a 3-4 s window,
+      // and far too few for fingerprint positioning. iOS ignores scanMode.
+      { allowDuplicates: true, scanMode: ScanMode.LowLatency },
       (error: BleError | null, device: Device | null) => {
         if (error) {
           this.scanning = false;
