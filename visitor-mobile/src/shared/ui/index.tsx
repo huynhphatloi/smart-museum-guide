@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BrandMark } from './BrandMark';
 import { theme } from '../theme';
 
 export function Screen({
@@ -134,11 +135,7 @@ export function Divider() {
 }
 
 export function MuseumMark({ compact = false }: { compact?: boolean }) {
-  return (
-    <View style={[styles.mark, compact && styles.markCompact]} accessibilityElementsHidden>
-      <View style={styles.markInner} />
-    </View>
-  );
+  return <BrandMark size={compact ? 42 : 76} />;
 }
 
 const styles = StyleSheet.create({
@@ -228,26 +225,4 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing(1) },
   divider: { height: 1, backgroundColor: theme.colors.line, marginVertical: theme.spacing(1.5) },
-  mark: {
-    width: 76,
-    height: 92,
-    borderTopLeftRadius: 38,
-    borderTopRightRadius: 38,
-    backgroundColor: theme.colors.accentDark,
-    padding: 8,
-    justifyContent: 'flex-end',
-  },
-  markCompact: {
-    width: 42,
-    height: 50,
-    borderTopLeftRadius: 21,
-    borderTopRightRadius: 21,
-    padding: 5,
-  },
-  markInner: {
-    height: '72%',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: theme.colors.brass,
-  },
 });

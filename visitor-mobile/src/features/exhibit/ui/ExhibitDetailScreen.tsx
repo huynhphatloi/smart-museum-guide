@@ -65,13 +65,15 @@ export function ExhibitDetailScreen({ route }: Props) {
     <Screen style={styles.screen}>
       {hero ? (
         <View>
-          <Image
-            source={{ uri: hero.url }}
-            style={styles.hero}
-            resizeMode="contain"
-            accessible
-            accessibilityLabel={content.title}
-          />
+          <View style={styles.heroFrame}>
+            <Image
+              source={{ uri: hero.url }}
+              style={styles.hero}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel={content.title}
+            />
+          </View>
           {hero.caption ? <Text style={styles.caption}>{hero.caption}</Text> : null}
         </View>
       ) : (
@@ -149,10 +151,9 @@ const styles = StyleSheet.create({
   message: { gap: theme.spacing(2), paddingVertical: theme.spacing(5) },
   hero: {
     width: '100%',
-    height: 330,
-    borderRadius: 2,
-    marginBottom: theme.spacing(3),
+    height: 360,
   },
+  heroFrame: { overflow: 'hidden', borderRadius: 12, backgroundColor: '#E8E0D4', marginBottom: theme.spacing(1.5) },
   caption: {
     color: theme.colors.muted,
     fontFamily: theme.type.body,
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: theme.spacing(3),
   },
-  heading: { paddingBottom: theme.spacing(2.5) },
+  heading: { paddingTop: theme.spacing(1), paddingBottom: theme.spacing(2.5) },
   fallback: {
     borderLeftWidth: 2,
     borderColor: theme.colors.warning,
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     color: theme.colors.ink,
     fontFamily: theme.type.body,
     fontSize: 16,
-    lineHeight: 29,
+    lineHeight: 30,
     marginBottom: theme.spacing(2),
   },
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: theme.spacing(1) },

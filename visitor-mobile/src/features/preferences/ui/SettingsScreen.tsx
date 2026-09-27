@@ -6,6 +6,7 @@ import { RootStackParamList } from '../../../application/navigation/types';
 import { env } from '../../../shared/config/env';
 import { t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
+import { BrandMark } from '../../../shared/ui/BrandMark';
 import { Body, Eyebrow, Row, Screen, Subtitle, Title } from '../../../shared/ui';
 import { pt } from '../../indoor-positioning/i18n';
 import { useGuide } from '../../tour/model/GuideContext';
@@ -22,7 +23,6 @@ export function SettingsScreen() {
           <Eyebrow>{t(language, 'visitorPreferences')}</Eyebrow>
           <Title>{t(language, 'settings')}</Title>
         </View>
-
       </Row>
 
       <View style={styles.section}>
@@ -65,6 +65,7 @@ export function SettingsScreen() {
       ) : null}
 
       <View style={styles.about}>
+        <BrandMark size={42} />
         <View style={styles.aboutCopy}>
           <Eyebrow>{t(language, 'about')}</Eyebrow>
           <Body>{t(language, 'aboutBody')}</Body>
@@ -88,9 +89,10 @@ const styles = StyleSheet.create({
   preferenceCopy: { flex: 1, paddingRight: theme.spacing(2) },
   about: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing(1.5),
     backgroundColor: theme.colors.paper,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
+    borderRadius: 12,
     padding: theme.spacing(2.25),
     marginTop: theme.spacing(1),
   },

@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { RootStackParamList } from '../../../application/navigation/types';
 import { t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
-import { Body, Eyebrow, Row, Screen, Subtitle, Title } from '../../../shared/ui';
+import { Body, Eyebrow, Row, Screen, Title } from '../../../shared/ui';
 import { useGuide } from '../../tour/model/GuideContext';
 import { zoneCodeFromQr } from '../api/qr';
 
@@ -72,9 +72,9 @@ export function QrScreen() {
           onPress={() => void openScanner()}
           style={({ pressed }) => [styles.scanInvitation, pressed && styles.pressed]}
         >
-          <Svg width={66} height={66} viewBox="0 0 64 64" fill="none" stroke={theme.colors.accentDark} strokeWidth={3} strokeLinecap="round" style={styles.scanIcon}><Path d="M5 21V5h16M43 5h16v16M5 43v16h16M59 43v16H43" /><Rect x={22} y={22} width={20} height={20} rx={2} /></Svg>
-          <Subtitle>{t(language, 'qrTitle')}</Subtitle>
-          {permission?.granted === false ? <Body>{t(language, 'qrPermission')}</Body> : null}
+          <Svg width={70} height={70} viewBox="0 0 64 64" fill="none" stroke="#F7F1E7" strokeWidth={2.5} strokeLinecap="round" style={styles.scanIcon}><Path d="M5 21V5h16M43 5h16v16M5 43v16h16M59 43v16H43" /><Rect x={22} y={22} width={20} height={20} rx={2} /></Svg>
+          <Text style={styles.scanInvitationTitle}>{t(language, 'qrTitle')}</Text>
+          {permission?.granted === false ? <Text style={styles.scanInvitationHelp}>{t(language, 'qrPermission')}</Text> : null}
         </Pressable>
       )}
 
@@ -158,14 +158,16 @@ const styles = StyleSheet.create({
   },
   scanInvitation: {
     minHeight: 286,
-    borderRadius: 2,
-    backgroundColor: theme.colors.accentSoft,
+    borderRadius: 12,
+    backgroundColor: '#2D2824',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: theme.spacing(4),
   },
   pressed: { opacity: 0.75 },
   scanIcon: { marginBottom: theme.spacing(3) },
+  scanInvitationTitle: { color: '#F7F1E7', fontFamily: theme.type.display, fontSize: 30, lineHeight: 36, textAlign: 'center' },
+  scanInvitationHelp: { color: '#E6D9C7', fontFamily: theme.type.body, fontSize: 13, textAlign: 'center', lineHeight: 19, marginTop: 9 },
   manualSection: {
     borderTopWidth: 1,
     borderColor: theme.colors.line,

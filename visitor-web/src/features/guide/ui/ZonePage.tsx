@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { t } from '../../../shared/i18n';
 import { rememberLanguage, resolveInitialLanguage } from '../../../shared/i18n/language';
+import { BrandMark } from '../../../shared/ui/BrandMark';
 import { LanguageSelector } from '../../preferences/ui/LanguageSelector';
 import { ApiError, fetchActiveExhibitForZone, fetchLanguages } from '../api/client';
 import { ActiveExhibitResponse } from '../model/types';
@@ -76,11 +78,11 @@ export function ZonePage() {
 
   const header = (
     <header className="sticky top-0 z-10 border-b border-museum-line bg-museum-bg/95 backdrop-blur">
-      <div className="mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-14">
-        <Link to="/" className="flex items-center gap-3 text-sm font-semibold text-museum-ink">
-          <span className="flex h-8 w-8 items-center justify-center border border-museum-ink font-serif text-lg leading-none" aria-hidden="true">M</span>
+      <div className="mx-auto flex min-h-[76px] max-w-[1440px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-14">
+        <Link to="/" className="group flex items-center gap-3 text-sm font-semibold text-museum-ink">
+          <BrandMark size={36} />
           <span className="hidden sm:inline">{t(language, 'appName')}</span>
-          <span className="sm:hidden">Museum Guide</span>
+          <ArrowLeft className="ml-2 opacity-50 transition-transform group-hover:-translate-x-1 sm:hidden" size={17} aria-hidden="true" />
         </Link>
         <LanguageSelector languages={languages} value={language} onChange={handleLanguageChange} label={t(language, 'language')} />
       </div>

@@ -7,6 +7,17 @@ interface Props {
   language: string;
 }
 
+const demoZoneNames: Record<string, { en: string; vi: string }> = {
+  ZONE_A01: { en: 'Ancient Sculpture', vi: 'Điêu khắc cổ' },
+  ZONE_A02: { en: 'Traditional Painting', vi: 'Tranh dân gian' },
+  ZONE_B01: { en: 'Vietnamese Ceramics', vi: 'Gốm Việt Nam' },
+};
+
+function zoneLabel(code: string, name: string, language: string): string {
+  const demo = demoZoneNames[code];
+  return language === 'vi' && demo?.en === name ? demo.vi : name;
+}
+
 export function ExhibitView({ data, language }: Props) {
   const { zone, exhibit } = data;
   const images = exhibit.media.filter((item) => item.type === 'IMAGE');
@@ -15,11 +26,11 @@ export function ExhibitView({ data, language }: Props) {
   const paragraphs = (exhibit.description ?? '').split(/\n\s*\n|\n/).map((line) => line.trim()).filter(Boolean);
 
   return (
-    <article className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-8 lg:px-14">
+    <article className="exhibit-article mx-auto max-w-[1440px] px-5 pb-24 sm:px-8 lg:px-14">
       <div className="grid gap-7 pt-7 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.78fr)] lg:gap-16 lg:pt-12">
-        <figure className="lg:row-span-2">
+        <figure className="exhibit-photo-frame lg:row-span-2">
           {hero ? (
-            <img src={hero.url} alt={exhibit.title} className="aspect-[4/3] w-full bg-museum-line/40 object-contain sm:aspect-[5/4] lg:aspect-[4/5]" />
+            <img src={hero.url} alt={exhibit.title} className="aspect-[3/4] w-full bg-museum-line/40 object-contain sm:aspect-[5/4] lg:aspect-[4/5]" />
           ) : (
             <div className="flex aspect-[4/3] items-center justify-center bg-museum-line/40 text-sm text-museum-muted">{t(language, 'gallery')}</div>
           )}
@@ -27,7 +38,7 @@ export function ExhibitView({ data, language }: Props) {
         </figure>
 
         <div className="lg:pt-4">
-          <p className="mb-5 flex items-center gap-3 text-xs font-semibold text-museum-accent"><span className="h-px w-8 bg-museum-accent" aria-hidden="true" />{zone.name} · {zone.code}</p>
+          <p className="mb-5 flex items-center gap-3 text-xs font-semibold text-museum-accent"><span className="h-px w-8 bg-museum-accent" aria-hidden="true" />{zoneLabel(zone.code, zone.name, language)} · {zone.code}</p>
           <h1 className="max-w-[13ch] text-balance font-serif text-[clamp(2.8rem,5vw,5.7rem)] font-medium leading-[1.02] tracking-[-0.045em]">{exhibit.title}</h1>
           {exhibit.shortDescription ? <p className="mt-7 max-w-[50ch] text-pretty text-lg leading-8 text-museum-muted">{exhibit.shortDescription}</p> : null}
           {exhibit.translationFallback ? (

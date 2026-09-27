@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { AccessibilityInfo, ActivityIndicator, Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../../../application/navigation/types';
 import { t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
+import { BrandMark } from '../../../shared/ui/BrandMark';
 import {
   Body,
   Button,
@@ -35,6 +36,22 @@ export function ExploreScreen() {
 
   const hero = exhibit?.exhibit.media.find((item) => item.type === 'IMAGE');
   const zoneName = exhibit?.zone.name ?? snapshot.confirmedZone;
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!scanning) { pulse.setValue(1); return; }
+    let animation: Animated.CompositeAnimation | undefined;
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (!active || reduced) return;
+      animation = Animated.loop(Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.35, duration: 950, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 950, useNativeDriver: true }),
+      ]));
+      animation.start();
+    });
+    return () => { active = false; animation?.stop(); pulse.setValue(1); };
+  }, [pulse, scanning]);
 
   return (
     <Screen>
@@ -43,11 +60,11 @@ export function ExploreScreen() {
           <Eyebrow>{zoneName ? t(language, 'currentZone') : t(language, 'museumCollection')}</Eyebrow>
           <Title>{zoneName ?? t(language, 'explore')}</Title>
         </View>
-        <Text style={styles.headerMonogram}>M</Text>
+        <BrandMark size={40} />
       </Row>
 
       <View style={[styles.guideBar, scanning && styles.guideBarActive]}>
-        <View style={[styles.statusDot, scanning && styles.statusDotActive]} />
+        <Animated.View style={[styles.statusDot, scanning && styles.statusDotActive, { opacity: pulse }]} />
         <View style={styles.guideCopy}>
           <Text style={styles.guideTitle}>
             {scanning ? t(language, 'scanning') : t(language, 'scanningStopped')}
@@ -107,7 +124,7 @@ export function ExploreScreen() {
           </View>
         ) : exhibitError ? (
           <View style={styles.message}>
-            <Text style={styles.headerMonogram}>M</Text>
+            <BrandMark size={48} />
             <Body>
               {exhibitError.code === 'NO_ACTIVE_EXHIBIT'
                 ? t(language, 'noExhibit')
@@ -122,10 +139,10 @@ export function ExploreScreen() {
         ) : exhibit ? (
           <View style={styles.feature}>
             {hero ? (
-              <Image source={{ uri: hero.url }} style={styles.image} resizeMode="cover" />
+              <View style={styles.imageWrap}><Image source={{ uri: hero.url }} style={styles.image} resizeMode="cover" /><View style={styles.imageOverlay} pointerEvents="none" /><Text style={styles.imageLabel}>{exhibit.zone.code}</Text></View>
             ) : (
               <View style={styles.imageFallback}>
-                <Text style={styles.headerMonogram}>M</Text>
+                <BrandMark size={64} />
               </View>
             )}
             <View style={styles.featureCopy}>
@@ -144,7 +161,7 @@ export function ExploreScreen() {
           </View>
         ) : (
           <View style={styles.empty}>
-            <Image source={require('../../../../assets/images/isana-my-son.jpg')} style={styles.emptyImage} resizeMode="cover" accessibilityLabel="Isana statue from My Son" />
+            <View style={styles.emptyImageWrap}><Image source={require('../../../../assets/images/isana-my-son.jpg')} style={styles.emptyImage} resizeMode="cover" accessibilityLabel="Isana statue from My Son" /><View style={styles.emptyImageShade} pointerEvents="none" /><Text style={styles.emptyImageText}>{language === 'vi' ? 'Nhìn gần hơn.\nHiểu sâu hơn.' : 'Look closer.\nDiscover more.'}</Text></View>
             <Subtitle>
               {scanning ? t(language, 'scanning') : t(language, 'scanningStopped')}
             </Subtitle>
@@ -207,12 +224,14 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   loading: { minHeight: 280, alignItems: 'center', justifyContent: 'center' },
   message: { gap: theme.spacing(1.5), paddingVertical: theme.spacing(4) },
-  feature: { backgroundColor: theme.colors.paper, borderWidth: 1, borderColor: theme.colors.line },
+  feature: { backgroundColor: theme.colors.paper, borderRadius: 12, overflow: 'hidden' },
+  imageWrap: { position: 'relative', height: 300, backgroundColor: theme.colors.line },
   image: {
     width: '100%',
-    height: 210,
-    borderRadius: 2,
+    height: '100%',
   },
+  imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(29, 22, 17, 0.12)' },
+  imageLabel: { position: 'absolute', top: 15, left: 15, overflow: 'hidden', backgroundColor: theme.colors.paper, color: theme.colors.accentDark, fontFamily: theme.type.body, fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 12, paddingVertical: 8 },
   imageFallback: {
     height: 210,
     borderRadius: 2,
@@ -220,14 +239,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureCopy: { padding: theme.spacing(2.25), paddingBottom: theme.spacing(2.75) },
+  featureCopy: { padding: theme.spacing(2.5), paddingBottom: theme.spacing(3) },
   exhibitTitle: {
     color: theme.colors.ink,
     fontFamily: theme.type.display,
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: '600',
     letterSpacing: -0.7,
-    lineHeight: 35,
+    lineHeight: 39,
     marginBottom: theme.spacing(1),
   },
   empty: {
@@ -235,6 +254,8 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing(3),
     paddingBottom: theme.spacing(5),
   },
-  headerMonogram: { width: 35, height: 35, borderWidth: 1, borderColor: theme.colors.ink, textAlign: 'center', textAlignVertical: 'center', fontFamily: theme.type.display, fontSize: 25, color: theme.colors.ink, lineHeight: 33 },
-  emptyImage: { width: '100%', height: 235, marginBottom: theme.spacing(2.5), backgroundColor: theme.colors.line },
+  emptyImageWrap: { width: '100%', height: 280, marginBottom: theme.spacing(2.5), overflow: 'hidden', borderRadius: 12, backgroundColor: theme.colors.line },
+  emptyImage: { width: '100%', height: '100%' },
+  emptyImageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(24, 17, 14, 0.38)' },
+  emptyImageText: { position: 'absolute', left: 20, right: 20, bottom: 19, color: theme.colors.white, fontFamily: theme.type.display, fontSize: 34, lineHeight: 38 },
 });

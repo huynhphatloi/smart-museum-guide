@@ -1,6 +1,7 @@
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { theme } from '../../../shared/theme';
 
 interface Props {
@@ -82,7 +83,9 @@ export function AudioNarration({ url, playLabel, emptyLabel, autoPlay = false }:
           {loading ? (
             <ActivityIndicator size="small" color={theme.colors.accentDark} />
           ) : (
-            <Text style={styles.controlGlyph}>{playing ? 'Ⅱ' : '▶'}</Text>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" accessibilityElementsHidden>
+              {playing ? <Path d="M8 5v14M16 5v14" stroke={theme.colors.accentDark} strokeWidth={3} strokeLinecap="round" /> : <Path d="m8 5 11 7-11 7V5Z" fill={theme.colors.accentDark} />}
+            </Svg>
           )}
         </View>
         <View style={styles.copy}>
@@ -117,7 +120,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  controlGlyph: { color: theme.colors.accentDark, fontSize: 16, marginLeft: 2 },
   copy: { flex: 1, paddingHorizontal: theme.spacing(1.5) },
   kicker: {
     color: theme.colors.brass,

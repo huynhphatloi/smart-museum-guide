@@ -33,7 +33,7 @@ Visitors may have brief attention, variable connectivity, and only one free hand
 
 ## Evidence on Hand
 
-Four sourced demo exhibit photographs and reading scripts are recorded in `docs/demo-exhibit-sources.md`. Real museum catalogue approval, recorded narration, a production domain, and physical-gallery validation are not yet available.
+Twenty sourced demo exhibit photographs and Vietnamese reading scripts are recorded in `docs/demo-exhibit-sources.md`. Real museum catalogue approval, recorded narration, a production domain, and physical-gallery validation are not yet available.
 
 ## Product Principles
 

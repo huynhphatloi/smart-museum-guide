@@ -1,22 +1,50 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-27T05:00:00Z",
+  "generatedAt": "2026-09-27T06:05:49Z",
   "title": "Design System: Smart Museum Guide",
   "extensions": {
     "colorMeta": {
+      "gallery": { "role": "primary", "displayName": "Gallery charcoal", "canonical": "#2D2824" },
+      "gallery-glow": { "role": "primary", "displayName": "Gallery glow", "canonical": "#654337" },
+      "gallery-cream": { "role": "neutral", "displayName": "Gallery cream", "canonical": "#F7F1E7" },
+      "gallery-brass": { "role": "secondary", "displayName": "Gallery brass", "canonical": "#D8B77F" },
       "paper": { "role": "neutral", "displayName": "Warm paper", "canonical": "#F5F2EB" },
       "ink": { "role": "neutral", "displayName": "Gallery ink", "canonical": "#22211E" },
-      "lacquer": { "role": "primary", "displayName": "Muted lacquer", "canonical": "#803E31" }
+      "lacquer": { "role": "secondary", "displayName": "Muted lacquer", "canonical": "#803E31" }
     },
     "typographyMeta": {
       "display": { "displayName": "Newsreader", "purpose": "Exhibit and section headings" },
       "body": { "displayName": "Be Vietnam Pro", "purpose": "Reading text and interface controls" }
     },
-    "shadows": [],
-    "motion": [{ "name": "color-standard", "value": "150ms ease", "purpose": "Button and navigation feedback" }],
+    "shadows": [
+      { "name": "artifact-primary", "value": "0 30px 70px rgb(13 7 5 / .35)", "purpose": "Depth for the main home artifact image only" },
+      { "name": "artifact-secondary", "value": "0 16px 35px rgb(13 7 5 / .24)", "purpose": "Depth for smaller images in the home collection collage" }
+    ],
+    "motion": [
+      { "name": "color-standard", "value": "150ms ease", "purpose": "Button and navigation feedback" },
+      { "name": "home-enter", "value": "850ms cubic-bezier(.16, 1, .3, 1)", "purpose": "One-time Visitor Web headline reveal; disabled for reduced motion" },
+      { "name": "art-arrive", "value": "1.1s cubic-bezier(.16, 1, .3, 1)", "purpose": "One-time artifact collage reveal; disabled for reduced motion" },
+      { "name": "native-reveal", "value": "900ms", "purpose": "One-time welcome photograph reveal; skipped when Reduce Motion is enabled" },
+      { "name": "native-scan-pulse", "value": "950ms each half-cycle", "purpose": "Scanning status only; skipped when Reduce Motion is enabled" }
+    ],
     "breakpoints": [{ "name": "sm", "value": "640px" }, { "name": "lg", "value": "1024px" }]
   },
   "components": [
+    {
+      "name": "Gallery action",
+      "kind": "button",
+      "refersTo": "button-gallery",
+      "description": "High-contrast manual zone-code action on the dark Visitor Web home stage.",
+      "html": "<button class=\"ds-gallery-action\">Mở khu vực ↗</button>",
+      "css": ".ds-gallery-action{min-height:48px;padding:12px 20px;border:0;border-radius:6px;background:#D8B77F;color:#2D2824;font:600 14px 'Be Vietnam Pro',sans-serif;cursor:pointer;transition:background 150ms ease}.ds-gallery-action:hover{background:#EBCB95}.ds-gallery-action:focus-visible{outline:2px solid #F7F1E7;outline-offset:3px}"
+    },
+    {
+      "name": "Focus-frame brand mark",
+      "kind": "custom",
+      "description": "Four-corner frame with central diamond and brass dot, shared by Visitor Web and native app.",
+      "html": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8 23V8h15M41 8h15v15M56 41v15H41M23 56H8V41\" stroke=\"#2D2824\" stroke-width=\"3.5\"/><path d=\"M32 16 48 32 32 48 16 32 32 16Z\" stroke=\"#2D2824\" stroke-width=\"2.5\"/><circle cx=\"32\" cy=\"32\" r=\"5\" fill=\"#C89A58\"/></svg>",
+      "css": "svg{display:block}"
+    },
     {
       "name": "Primary button",
       "kind": "button",
@@ -42,11 +70,11 @@
     }
   ],
   "narrative": {
-    "northStar": "The photographic collection sheet",
-    "overview": "Real object imagery anchors each visitor view. Editorial type supports long reading, while the staff console keeps collection work structured and calm.",
-    "keyCharacteristics": ["Image-led", "Readable", "Quiet", "Functional"],
-    "rules": [{ "name": "Object first", "body": "Place the object image and guide before decorative branding.", "section": "typography" }],
-    "dos": ["Do show real object photographs with captions.", "Do distinguish summary, narration and audio."],
-    "donts": ["Don't replace object imagery with abstract arches.", "Don't use color alone to indicate status."]
+    "northStar": "The gallery threshold",
+    "overview": "A dark dimensional home stage leads into calm paper reading surfaces. Real object imagery remains central, and the staff console remains structured and quiet.",
+    "keyCharacteristics": ["Image-led", "Editorial", "Dimensional at entry", "Readable", "Precise for staff"],
+    "rules": [{ "name": "Object first", "body": "Place real object imagery and its guide before decorative branding.", "section": "Overview" }, { "name": "Depth at entry", "body": "Keep the 3D collage treatment on the home stage; reading and staff surfaces stay flat.", "section": "Elevation & Depth" }],
+    "dos": ["Do show real object photographs with captions.", "Do distinguish summary, narration and audio.", "Do make the page usable with reduced motion."],
+    "donts": ["Don't replace object imagery with abstract silhouettes.", "Don't use color alone to indicate status.", "Don't present demonstration images as a deploying museum's own collection."]
   }
 }
