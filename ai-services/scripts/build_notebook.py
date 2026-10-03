@@ -104,19 +104,35 @@ print("Installed:", ", ".join(packages))
 """
 
 START = """#@title Start the service
-import sys
+import gc, sys
 
-try:
-    service.stop()  # re-running this cell replaces the previous instance
-except NameError:
-    pass
+if "service" in globals():
+    service.stop()
+    # stop() signals the worker; wait before releasing models it may still use.
+    old_worker = service.worker
+    if old_worker is not None and old_worker._thread is not None:
+        old_worker._thread.join()
+    service.worker = None
+    service.narrator = None
+    service.translator = None
+    del old_worker, service
+
+# Failed startup tracebacks can retain a partly loaded model on the GPU.
+for name in ("last_traceback", "last_value", "last_exc"):
+    if hasattr(sys, name):
+        delattr(sys, name)
+gc.collect()
+if "torch" in sys.modules and sys.modules["torch"].cuda.is_available():
+    sys.modules["torch"].cuda.empty_cache()
+
 for name in [module for module in list(sys.modules) if module.startswith("museum_ai")]:
     del sys.modules[name]  # pick up edited %%writefile cells
 
 from museum_ai.config import Settings
 from museum_ai.service import AiService
 
-service = AiService(Settings.from_env()).start()
+service = AiService(Settings.from_env())
+service.start()  # keep the instance available for cleanup if startup fails
 service.status()
 """
 
@@ -155,7 +171,7 @@ TROUBLESHOOTING = """### Troubleshooting
 | `Cannot reach BACKEND_API_URL` | Coolify API down, or local tunnel URL changed; use the stable `https://api.<domain>/api` in production, or restart `cloudflared` and update the form locally. |
 | CMS shows *AI service offline* | This notebook stopped, or the tunnel died. Run all again; waiting tasks resume. |
 | `401 ... gated repo` while loading TranslateGemma | Accept the license on Hugging Face and add `HF_TOKEN`. |
-| CUDA out of memory | Use an L4/A100 runtime, keep `translategemma-4b-it`, or clear `FALLBACK_TTS_MODEL`. |
+| CUDA out of memory | If an older notebook already failed while restarting, restart the runtime once and Run all with this updated notebook. It releases old models before loading replacements. Use L4/A100 and `translategemma-4b-it` for normal operation. |
 | A language sounds wrong | Try the listening test; change `VOICE_DESCRIPTION`, then delete `/content/museum-ai/voices` so reference voices are recreated, and press *Regenerate* in the CMS. |
 """
 
