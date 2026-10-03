@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { resolve } from 'path';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { AuthModule } from './auth/auth.module';
 import { BeaconsModule } from './beacons/beacons.module';
@@ -25,7 +25,7 @@ import { ZonesModule } from './zones/zones.module';
         const config = loadConfig();
         return [
           {
-            rootPath: join(process.cwd(), config.uploadDir),
+            rootPath: resolve(process.cwd(), config.uploadDir),
             serveRoot: '/uploads',
             serveStaticOptions: { index: false, fallthrough: true },
           },
