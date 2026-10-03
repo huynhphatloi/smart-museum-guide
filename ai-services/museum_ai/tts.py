@@ -80,7 +80,8 @@ class VoxCPM2Engine:
         return self._generate(f"{prefix}{text}", reference_wav_path=voice.wav_path)
 
     def _generate(self, text: str, **kwargs) -> np.ndarray:
-        wav = self.model.generate(text=text, cfg_value=2.0, inference_timesteps=10, seed=42, **kwargs)
+        # VoxCPM releases used by Colab do not all accept a seed argument.
+        wav = self.model.generate(text=text, cfg_value=2.0, inference_timesteps=10, **kwargs)
         return np.asarray(wav, dtype=np.float32)
 
 
