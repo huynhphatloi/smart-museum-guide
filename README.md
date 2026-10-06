@@ -250,6 +250,44 @@ Run from `visitor-mobile/`:
 | `npm test`          | Run unit tests                           |
 | `npm run format`    | Format Mobile source files               |
 
+### Install the iOS app using an Ad Hoc certificate
+
+The `adhoc` profile in `visitor-mobile/eas.json` creates a standalone Release build for registered iPhones. It uses the production API and real BLE. It requires an Apple Developer Program distribution certificate (with its private key) and an Ad Hoc provisioning profile for `com.museum.smartguide`. Every recipient's iPhone UDID must be included in that profile; this is not a universal installer for arbitrary iPhones.
+
+With EAS-managed signing, run from `visitor-mobile/`:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest init
+npx eas-cli@latest device:create
+npx eas-cli@latest build --platform ios --profile adhoc
+```
+
+Register each tester's iPhone before building and select those devices when EAS creates the provisioning profile. Share the resulting EAS installation link with registered testers. When adding devices, create an updated profile and rebuild or re-sign the app. TestFlight is not involved.
+
+For local signing with an existing certificate, import its `.p12` into Keychain and supply the matching `.mobileprovision` to the Xcode export. Keep certificate private keys and passwords out of Git and chat. The profile's app identifier, certificate, expiry, and device list must be verified before the signed `.ipa` is shared. An unsigned build still needs this signing step before it can be installed.
+
+See [Expo internal distribution](https://docs.expo.dev/build/internal-distribution/) and [Apple Ad Hoc provisioning](https://developer.apple.com/help/account/provisioning-profiles/create-an-ad-hoc-provisioning-profile).
+
+### Share the iOS app through TestFlight
+
+The `production` profile in `visitor-mobile/eas.json` builds a standalone Release app using the production API and real BLE. EAS manages and increments its build number remotely. The `preview` profile uses ad hoc distribution and requires each tester's device to be registered; use `production` for a public TestFlight link.
+
+Prerequisites: an active paid [Apple Developer Program membership](https://developer.apple.com/programs/enroll/), an Expo account, and an App Store Connect app with bundle identifier `com.museum.smartguide`. A free Apple ID / Personal Team supports personal device testing and cannot publish this TestFlight build. The production profile has been prepared; a successful signed build and upload still need to be verified.
+
+Run from `visitor-mobile/` after the membership is active:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest init
+npx eas-cli@latest build --platform ios --profile production
+npx eas-cli@latest submit --platform ios --latest
+```
+
+Use the enrolled Apple Developer team when signing. After the upload finishes processing, open App Store Connect → Museum Guide → TestFlight, create an external testing group, add the build, complete the beta review information, and submit it for TestFlight App Review. After approval, enable the group's public link and share it. Testers install Apple's TestFlight app, open the link, and install Museum Guide without sending a device UDID or installing a signing profile.
+
+[TestFlight](https://developer.apple.com/testflight/) supports up to 10,000 external testers and each build is available for 90 days. Upload replacement builds before expiry. For an ongoing public release, submit the app to the App Store separately.
+
 ### Visitor Web
 
 Run from `visitor-web/`:

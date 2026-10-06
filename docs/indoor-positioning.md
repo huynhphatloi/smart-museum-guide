@@ -62,6 +62,37 @@ results table to fill in) is in [bao-cao-dinh-vi-trong-nha.md](bao-cao-dinh-vi-t
 
 ## Setting up the demo room (25 m², 3 beacons)
 
+### Importing an OpenPlan3D room capture
+
+In the CMS → **Maps**, choose **Import DXF** to create a floor plan from an
+OpenPlan3D ASCII DXF (up to 5 MB). The preview reads the drawing's units, converts
+coordinates to metres, moves the origin to the top-left and computes the geometry's
+bounding rectangle, including wall thickness. Titles and dimension labels do not
+affect these bounds. If the DXF does not declare a supported unit, select its
+original unit explicitly. You can hide furniture before saving.
+
+Saving uploads a PNG background through the existing media service and stores the
+computed dimensions. Mobile and Visitor Web use this background without client
+changes. Keep the original DXF for later edits: this first importer stores the
+rendered background, not editable CAD entities or a walkable-room polygon. Review
+openings against the room, then place zones, beacons and reference points manually;
+automatic grid generation does not exclude furniture or areas outside the actual
+room outline.
+
+An empty floor plan can also import a DXF from its editor. Plans with zones or
+survey points require a new floor plan, so an import cannot silently change their
+coordinate system or existing calibration. The supported layers are `WALLS`,
+`WINDOWS`, `DOORS`, `FURNITURE` and dimension annotations; supported geometry is
+2D lines, straight lightweight polylines and B-splines (including rational arcs). Unsupported
+blocks, layers or curves are rejected rather than partially imported. Wall gaps
+are kept open.
+
+Run the parser checks from `backend/` with `npm --workspace admin run test:dxf`.
+The same command can additionally validate the original demo capture kept outside
+the repository by passing `-- "/absolute/path/to/Room Capture P6YG4VT3 (Recovered copy).dxf"`.
+
+### Demo seed and calibration
+
 1. `npm run db:seed-positioning` (in `backend/`) creates `DEMO_ROOM` (5 × 5 m), puts the
    three demo zones in three corners, places each zone's beacon in its corner, adds a
    1 m grid of 25 reference points and 8 off-grid test points. It only fills in what is

@@ -30,7 +30,8 @@ import {
 } from '@/components/ui/table';
 import { useFloorPlanI18n } from '@/features/floor-plans/i18n';
 import { FloorPlanSummary } from '@/features/floor-plans/types';
-import { ApiError, apiFetch } from '@/lib/api-client';
+import { DxfImportDialog } from '@/features/floor-plans/ui/dxf-import-dialog';
+import { ApiError, apiFetch, apiUpload } from '@/lib/api-client';
 
 export default function FloorPlansPage() {
   const { t } = useFloorPlanI18n();
@@ -83,10 +84,30 @@ export default function FloorPlansPage() {
             {t('floorPlansDescription')}
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t('newFloorPlan')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <DxfImportDialog
+            create
+            onApply={async (file, drawing, identity) => {
+              const stored = await apiUpload(file);
+              const plan = await apiFetch<FloorPlanSummary>('/admin/floor-plans', {
+                method: 'POST',
+                body: {
+                  ...identity,
+                  imageUrl: stored.url,
+                  widthMeters: drawing.widthMeters,
+                  heightMeters: drawing.heightMeters,
+                },
+              });
+              toast.success(t('floorPlanCreated', { code: plan.code }));
+              void queryClient.invalidateQueries({ queryKey: ['floor-plans'] });
+              router.push(`/floor-plans/${plan.id}`);
+            }}
+          />
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" />
+            {t('newFloorPlan')}
+          </Button>
+        </div>
       </div>
 
       <Card>

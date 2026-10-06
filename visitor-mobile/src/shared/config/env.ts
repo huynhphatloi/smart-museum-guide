@@ -1,7 +1,21 @@
 import Constants from 'expo-constants';
 
+// Expo only embeds EXPO_PUBLIC variables accessed with literal dot notation.
+const publicBuildEnv: Record<string, string | undefined> = {
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_BLE_SIMULATION: process.env.EXPO_PUBLIC_BLE_SIMULATION,
+  EXPO_PUBLIC_DEFAULT_LANGUAGE: process.env.EXPO_PUBLIC_DEFAULT_LANGUAGE,
+  EXPO_PUBLIC_STAFF_TOOLS: process.env.EXPO_PUBLIC_STAFF_TOOLS,
+  EXPO_PUBLIC_SCAN_WINDOW_MS: process.env.EXPO_PUBLIC_SCAN_WINDOW_MS,
+  EXPO_PUBLIC_DWELL_TIME_MS: process.env.EXPO_PUBLIC_DWELL_TIME_MS,
+  EXPO_PUBLIC_HYSTERESIS_DB: process.env.EXPO_PUBLIC_HYSTERESIS_DB,
+  EXPO_PUBLIC_MIN_RSSI: process.env.EXPO_PUBLIC_MIN_RSSI,
+  EXPO_PUBLIC_COOLDOWN_MS: process.env.EXPO_PUBLIC_COOLDOWN_MS,
+  EXPO_PUBLIC_TICK_INTERVAL_MS: process.env.EXPO_PUBLIC_TICK_INTERVAL_MS,
+};
+
 const readString = (key: string, fallback: string): string => {
-  const fromProcess = process.env[key];
+  const fromProcess = publicBuildEnv[key];
   if (typeof fromProcess === 'string' && fromProcess.length > 0) return fromProcess;
 
   const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;

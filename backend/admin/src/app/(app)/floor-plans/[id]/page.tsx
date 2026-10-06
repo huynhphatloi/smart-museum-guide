@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFloorPlanI18n } from '@/features/floor-plans/i18n';
 import { FloorPlanDetail, MapShape, MapZone, SurveyPointKind } from '@/features/floor-plans/types';
 import { PlanCanvas } from '@/features/floor-plans/ui/plan-canvas';
+import { DxfImportDialog } from '@/features/floor-plans/ui/dxf-import-dialog';
 import { ApiError, apiFetch, apiUpload } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
 import { Paginated } from '@/lib/types';
@@ -269,7 +270,23 @@ export default function FloorPlanDetailPage() {
             {plan.code} · {plan.widthMeters} × {plan.heightMeters} m
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <DxfImportDialog
+            blocked={plan.zones.length > 0 || plan.surveyPoints.length > 0}
+            onApply={async (file, drawing) => {
+              const stored = await apiUpload(file);
+              await apiFetch(`/admin/floor-plans/${planId}`, {
+                method: 'PATCH',
+                body: {
+                  imageUrl: stored.url,
+                  widthMeters: drawing.widthMeters,
+                  heightMeters: drawing.heightMeters,
+                },
+              });
+              toast.success(t('floorPlanSaved'));
+              invalidate();
+            }}
+          />
           <Button variant="outline" onClick={() => void exportDataset()}>
             <Download className="h-4 w-4" />
             {t('exportDataset')}

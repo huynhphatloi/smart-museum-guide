@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "developmentClient": false,
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.smartmuseum.loygenics.com/api",
+        "EXPO_PUBLIC_BLE_SIMULATION": "false",
+        "EXPO_PUBLIC_STAFF_TOOLS": "false"
+      }
+    },
+    "adhoc": {
+      "extends": "preview"
+    },
+    "production": {
+      "distribution": "store",
+      "developmentClient": false,
+      "autoIncrement": true,
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.smartmuseum.loygenics.com/api",
+        "EXPO_PUBLIC_BLE_SIMULATION": "false",
+        "EXPO_PUBLIC_STAFF_TOOLS": "false"
+      }
+    }
+  }
+}

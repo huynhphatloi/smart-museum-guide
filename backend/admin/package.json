@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start -p 4000",
     "lint": "next lint --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:dxf": "node scripts/test-dxf.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
