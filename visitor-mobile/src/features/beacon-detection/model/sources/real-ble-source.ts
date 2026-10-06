@@ -1,4 +1,12 @@
-import { BleError, BleManager, Device, ScanMode, State, Subscription } from 'react-native-ble-plx';
+import {
+  BleError,
+  BleErrorCode,
+  BleManager,
+  Device,
+  ScanMode,
+  State,
+  Subscription,
+} from 'react-native-ble-plx';
 import { readAdvertisement } from '../advertisement';
 import { RegisteredBeacon, buildBeaconIndex, matchBeacon } from '../beacon-registry';
 import { EDDYSTONE_SERVICE_UUID } from '../eddystone';
@@ -15,6 +23,8 @@ export interface RealBleSourceOptions {
    */
   eddystoneOnly?: boolean;
   onFailure?: (reason: BleFailureReason, error?: unknown) => void;
+  /** A scan has started successfully, including recovery after a state change. */
+  onReady?: () => void;
 }
 
 /**
@@ -41,6 +51,8 @@ export class RealBleSignalSource implements BeaconSignalSource {
   private manager: BleManager | null = null;
   private stateSubscription: Subscription | null = null;
   private scanning = false;
+  private active = false;
+  private scanGeneration = 0;
 
   constructor(
     registry: readonly RegisteredBeacon[],
@@ -55,40 +67,43 @@ export class RealBleSignalSource implements BeaconSignalSource {
   }
 
   async start(): Promise<void> {
-    if (this.scanning) return;
+    if (this.active) return;
+    this.active = true;
 
-    const manager = this.getManager();
+    // Subscribe before reading the initial state. iOS commonly starts at
+    // Unknown while Core Bluetooth initializes or shows its permission prompt.
+    this.stateSubscription = this.getManager().onStateChange((state) => {
+      if (!this.active) return;
+      if (state === State.PoweredOn) {
+        void this.beginScan();
+        return;
+      }
 
-    const state = await manager.state();
-    if (state === State.Unsupported) {
-      this.options.onFailure?.('UNSUPPORTED');
-      return;
-    }
-    if (state !== State.PoweredOn) {
-      this.options.onFailure?.('BLUETOOTH_OFF');
-      // Keep listening: scanning starts by itself once the visitor turns
-      // Bluetooth on, instead of forcing them back through the app.
-      this.stateSubscription?.remove();
-      this.stateSubscription = manager.onStateChange((next) => {
-        if (next === State.PoweredOn) void this.beginScan();
-      }, false);
-      return;
-    }
-
-    await this.beginScan();
+      this.scanGeneration += 1;
+      if (this.scanning) void this.manager?.stopDeviceScan().catch(() => undefined);
+      this.scanning = false;
+      if (state === State.PoweredOff) this.options.onFailure?.('BLUETOOTH_OFF');
+      if (state === State.Unauthorized) this.options.onFailure?.('PERMISSION_DENIED');
+      if (state === State.Unsupported) this.options.onFailure?.('UNSUPPORTED');
+      // Unknown/Resetting are transitional states, not evidence of a failure.
+    }, true);
   }
 
   async stop(): Promise<void> {
+    this.active = false;
     this.scanning = false;
+    this.scanGeneration += 1;
     this.stateSubscription?.remove();
     this.stateSubscription = null;
-    this.manager?.stopDeviceScan();
+    await this.manager?.stopDeviceScan().catch(() => undefined);
   }
 
   /** Releases the native manager. Call when the app is torn down. */
   destroy(): void {
-    void this.stop();
-    this.manager?.destroy();
+    const manager = this.manager;
+    void this.stop()
+      .then(() => manager?.destroy())
+      .catch(() => undefined);
     this.manager = null;
   }
 
@@ -107,35 +122,46 @@ export class RealBleSignalSource implements BeaconSignalSource {
   }
 
   private async beginScan(): Promise<void> {
+    if (!this.active || this.scanning) return;
     const manager = this.getManager();
     this.scanning = true;
-
-    // Filtering by the Eddystone service UUID lets the OS drop everything else
-    // before it reaches JS, which matters for battery on a long museum visit.
-    const serviceUuids = this.options.eddystoneOnly === false ? null : [EDDYSTONE_SERVICE_UUID];
-
-    manager.startDeviceScan(
-      serviceUuids,
-      // Museum beacons advertise continuously; duplicates are exactly what the
-      // sliding window needs. Android defaults to LowPower, which listens for
-      // roughly 0.5 s out of every 5 s - too few samples for a 3-4 s window,
-      // and far too few for fingerprint positioning. iOS ignores scanMode.
-      { allowDuplicates: true, scanMode: ScanMode.LowLatency },
-      (error: BleError | null, device: Device | null) => {
-        if (error) {
-          this.scanning = false;
-          const reason: BleFailureReason =
-            error.message?.toLowerCase().includes('permission') === true
-              ? 'PERMISSION_DENIED'
+    const generation = ++this.scanGeneration;
+    const current = () => this.active && generation === this.scanGeneration;
+    const fail = (error: unknown) => {
+      if (!current()) return;
+      this.scanning = false;
+      this.scanGeneration += 1;
+      const code = (error as BleError | null)?.errorCode;
+      const reason: BleFailureReason =
+        code === BleErrorCode.BluetoothUnauthorized
+          ? 'PERMISSION_DENIED'
+          : code === BleErrorCode.BluetoothPoweredOff
+            ? 'BLUETOOTH_OFF'
+            : code === BleErrorCode.BluetoothUnsupported
+              ? 'UNSUPPORTED'
               : 'SCAN_FAILED';
-          this.options.onFailure?.(reason, error);
-          return;
-        }
-        if (!device || device.rssi === null || device.rssi === undefined) return;
+      this.options.onFailure?.(reason, error);
+    };
 
-        this.handleDevice(device);
-      },
-    );
+    const serviceUuids = this.options.eddystoneOnly === false ? null : [EDDYSTONE_SERVICE_UUID];
+    try {
+      await manager.startDeviceScan(
+        serviceUuids,
+        { allowDuplicates: true, scanMode: ScanMode.LowLatency },
+        (error: BleError | null, device: Device | null) => {
+          if (!current()) return;
+          if (error) {
+            fail(error);
+            return;
+          }
+          if (!device || device.rssi === null || device.rssi === undefined) return;
+          this.handleDevice(device);
+        },
+      );
+      if (current() && this.scanning) this.options.onReady?.();
+    } catch (error) {
+      fail(error);
+    }
   }
 
   private handleDevice(device: Device): void {

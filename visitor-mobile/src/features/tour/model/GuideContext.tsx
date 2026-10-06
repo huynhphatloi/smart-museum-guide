@@ -251,8 +251,12 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
 
   const startScanning = useCallback(async () => {
     if (scannerRef.current) {
-      await scannerRef.current.start();
+      // A failed native scan can leave the processing timer running. Restart
+      // the source as well, so Try again really requests another native scan.
+      await scannerRef.current.stop();
+      setBleError(null);
       setScanning(true);
+      await scannerRef.current.start();
       return;
     }
 
@@ -282,6 +286,10 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       setSimulator(simulated);
     } else {
       const real = new RealBleSignalSource(registry, {
+        onReady: () => {
+          setBleError(null);
+          setScanning(true);
+        },
         onFailure: (reason) => {
           const key =
             reason === 'BLUETOOTH_OFF'
@@ -306,8 +314,8 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     setActiveScanner(scanner);
 
     setBleError(null);
-    await scanner.start();
     setScanning(true);
+    await scanner.start();
   }, [registry, handleZoneConfirmed]);
 
   const stopScanning = useCallback(async () => {

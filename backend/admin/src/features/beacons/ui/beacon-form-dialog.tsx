@@ -106,7 +106,7 @@ export function BeaconFormDialog({
     };
 
     save.mutate({
-      identifier: text('identifier').toUpperCase(),
+      ...(editing ? {} : { identifier: text('identifier').toUpperCase() }),
       name: text('name'),
       zoneId: text('zoneId'),
       protocol,
