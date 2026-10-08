@@ -147,11 +147,57 @@ path = service.preview(TEXT, TARGET_LANGUAGE, source_language=SOURCE_LANGUAGE)
 display(Audio(str(path)))
 """
 
+RESTART_TUNNEL = """#@title Restart only the Cloudflare tunnel (keeps the models loaded)
+import re, subprocess, time
+import httpx
+from museum_ai.tunnel import _cloudflared
+
+local = httpx.get(f"http://127.0.0.1:{service.settings.port}/health", timeout=10)
+local.raise_for_status()
+print("Local AI server is healthy. Models remain loaded.")
+if service._tunnel is not None:
+    print("Previous tunnel process status:", service._tunnel.poll())
+    service._tunnel.terminate()
+    try:
+        service._tunnel.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service._tunnel.kill()
+        service._tunnel.wait(timeout=5)
+
+tunnel_log = service.work_dir / "cloudflared-recovery.log"
+with tunnel_log.open("w") as output:
+    service._tunnel = subprocess.Popen([_cloudflared(service.work_dir / "bin"), "tunnel", "--no-autoupdate", "--protocol", "http2", "--url", f"http://127.0.0.1:{service.settings.port}"], stdout=output, stderr=subprocess.STDOUT, text=True)
+
+deadline = time.monotonic() + 90
+while time.monotonic() < deadline:
+    logs = tunnel_log.read_text()
+    match = re.search(r"https://[a-z0-9-]+\\.trycloudflare\\.com", logs)
+    if match:
+        public_url = match.group(0)
+        try:
+            health = httpx.get(public_url + "/health", timeout=10)
+            if health.status_code == 200 and health.json().get("instanceId") == service.instance_id:
+                service.public_url = public_url
+                response = service.client.heartbeat(service._heartbeat_payload())
+                response.raise_for_status()
+                print("New tunnel:", public_url)
+                print("Tunnel repaired. Waiting jobs can now reach Colab.")
+                break
+        except (httpx.HTTPError, ValueError):
+            pass
+    if service._tunnel.poll() is not None:
+        raise RuntimeError("Tunnel exited:\\n" + logs[-3000:])
+    time.sleep(2)
+else:
+    raise RuntimeError("Tunnel did not become healthy:\\n" + tunnel_log.read_text()[-3000:])
+"""
+
 KEEP_ALIVE = """#@title Keep running and show the log (stop this cell to use the notebook)
-import json, time
+import time
 
 log_file = f"{os.environ['WORK_DIR']}/service.log"
-position = 0
+position = os.path.getsize(log_file)  # skip entries from earlier sessions
+print("Service is running. Watching new log entries.")
 while True:
     with open(log_file, encoding="utf-8") as file:
         file.seek(position)
@@ -168,8 +214,8 @@ TROUBLESHOOTING = """### Troubleshooting
 | --- | --- |
 | `The backend rejected the signature` | `AI_SERVICE_SECRET` here and in `backend/api/.env` differ. |
 | `AI_SERVICE_SECRET is not set in backend/api/.env` | Set it, restart the API. |
-| `Cannot reach BACKEND_API_URL` | Coolify API down, or local tunnel URL changed; use the stable `https://api.<domain>/api` in production, or restart `cloudflared` and update the form locally. |
-| CMS shows *AI service offline* | This notebook stopped, or the tunnel died. Run all again; waiting tasks resume. |
+| `Cannot reach BACKEND_API_URL` | The deployed API is down, or the local tunnel URL changed; use the stable `https://api.<domain>/api` in production, or restart `cloudflared` and update the form locally. |
+| CMS shows *AI service offline* | This notebook stopped, or the tunnel died. Run *Restart only the Cloudflare tunnel*, or Run all again; waiting tasks resume. |
 | `401 ... gated repo` while loading TranslateGemma | Accept the license on Hugging Face and add `HF_TOKEN`. |
 | CUDA out of memory | If an older notebook already failed while restarting, restart the runtime once and Run all with this updated notebook. It releases old models before loading replacements. Use L4/A100 and `translategemma-4b-it` for normal operation. |
 | A language sounds wrong | Try the listening test; change `VOICE_DESCRIPTION`, then delete `/content/museum-ai/voices` so reference voices are recreated, and press *Regenerate* in the CMS. |
@@ -216,6 +262,7 @@ def build() -> dict:
         markdown("## Run"),
         code(START),
         code(PREVIEW),
+        code(RESTART_TUNNEL),
         code(KEEP_ALIVE),
         markdown(TROUBLESHOOTING),
     ]

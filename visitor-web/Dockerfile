@@ -15,6 +15,8 @@ COPY tsconfig.json vite.config.ts postcss.config.js tailwind.config.js ./
 
 ARG VITE_API_URL=http://localhost:3001/api
 ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_INDOOR_MAP=false
+ENV VITE_INDOOR_MAP=$VITE_INDOOR_MAP
 
 RUN npm run build
 

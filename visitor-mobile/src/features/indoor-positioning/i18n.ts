@@ -6,10 +6,19 @@
 const en = {
   mapTab: 'Map',
   mapEyebrow: 'Indoor positioning',
+  comingSoon: 'Coming soon',
+  comingSoonTitle: 'Museum map',
+  comingSoonBody:
+    'A map showing where you are in the gallery is being tested on site. Until it is ready, the guide still finds the nearest exhibit from museum beacons.',
+  comingSoonQr: 'You can also scan the QR code next to any exhibit.',
+  scanQr: 'Scan a QR code',
   mapTitle: 'Where you are',
   statusIdle: 'Start the guide to see where you are.',
   statusNoMap: 'No floor plan is available yet.',
-  statusNoRadioMap: 'No positioning data for this phone yet - showing your zone instead.',
+  statusNoRadioMap: 'Move closer to a museum beacon to see your nearby zone.',
+  statusNearbyZone: 'Nearby zone · approximate location',
+  nearbyZoneHelp:
+    'The marker shows the nearby beacon, or the zone centre. No recordings are needed. It does not show your exact position.',
   statusWeak: 'Weak signal - at least {n} beacons are needed.',
   statusOk: 'About ±{m} m',
   zoneHere: 'Current zone: {zone}',
@@ -79,10 +88,19 @@ type Key = keyof typeof en;
 const vi: Record<Key, string> = {
   mapTab: 'Bản đồ',
   mapEyebrow: 'Định vị trong nhà',
+  comingSoon: 'Sắp ra mắt',
+  comingSoonTitle: 'Bản đồ bảo tàng',
+  comingSoonBody:
+    'Bản đồ hiển thị vị trí của bạn trong phòng trưng bày đang được thử nghiệm tại chỗ. Trong lúc chờ, ứng dụng vẫn tự nhận biết hiện vật gần bạn nhờ beacon của bảo tàng.',
+  comingSoonQr: 'Bạn cũng có thể quét mã QR đặt cạnh mỗi hiện vật.',
+  scanQr: 'Quét mã QR',
   mapTitle: 'Bạn đang ở đâu',
   statusIdle: 'Bật hướng dẫn tự động để thấy vị trí của bạn.',
   statusNoMap: 'Bảo tàng chưa có bản đồ.',
-  statusNoRadioMap: 'Máy này chưa có dữ liệu định vị - đang hiển thị theo khu vực.',
+  statusNoRadioMap: 'Đi gần một beacon để thấy khu vực bạn đang ở gần.',
+  statusNearbyZone: 'Khu vực ở gần · vị trí tương đối',
+  nearbyZoneHelp:
+    'Dấu trên bản đồ là beacon ở gần hoặc tâm khu vực. Không cần record; dấu này chưa phải vị trí chính xác của bạn.',
   statusWeak: 'Tín hiệu yếu - cần nghe được ít nhất {n} beacon.',
   statusOk: 'Sai số khoảng ±{m} m',
   zoneHere: 'Khu vực hiện tại: {zone}',

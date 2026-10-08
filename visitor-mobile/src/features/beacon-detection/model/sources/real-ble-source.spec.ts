@@ -38,11 +38,17 @@ function setup(initial = State.Unknown) {
   const manager = {
     onStateChange: jest.fn((listener: (state: State) => void, emitCurrent: boolean) => {
       stateListener = listener;
+      let removed = false;
       if (emitCurrent)
         Promise.resolve().then(() => {
-          if (!remove.mock.calls.length) listener(initial);
+          if (!removed) listener(initial);
         });
-      return { remove };
+      return {
+        remove: () => {
+          removed = true;
+          remove();
+        },
+      };
     }),
     startDeviceScan: jest.fn().mockResolvedValue(undefined),
     stopDeviceScan: jest.fn().mockResolvedValue(undefined),
@@ -68,6 +74,18 @@ async function settle() {
 }
 
 describe('RealBleSignalSource iOS startup and recovery', () => {
+  it('uses one native manager for the readiness check and the actual scan', async () => {
+    const { source, manager, onReady } = setup(State.PoweredOn);
+    const before = (BleManager as unknown as jest.Mock).mock.calls.length;
+    await expect(source.isBluetoothReady()).resolves.toBe(true);
+    expect(manager.startDeviceScan).not.toHaveBeenCalled();
+    await source.start();
+    await settle();
+    expect((BleManager as unknown as jest.Mock).mock.calls.length - before).toBe(1);
+    expect(onReady).toHaveBeenCalledTimes(1);
+    await source.stop();
+  });
+
   it('waits for Unknown/Resetting without claiming Bluetooth is off', async () => {
     const { source, state, manager, onFailure, onReady } = setup();
     await source.start();

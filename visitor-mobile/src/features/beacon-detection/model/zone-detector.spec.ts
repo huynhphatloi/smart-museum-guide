@@ -33,6 +33,41 @@ const registry: RegisteredBeacon[] = [
 
 const STEP_MS = 500;
 
+describe('fast local hardware test configuration', () => {
+  const stat = {
+    identifier: 'BEACON_A01',
+    smoothedRssi: -68,
+    lastRssi: -68,
+    sampleCount: 1,
+    outliersRemoved: 0,
+    lastSeen: 0,
+    protocol: 'eddystone_uid' as const,
+  };
+  it('accepts a sparse advertisement after one second of stable dominance', () => {
+    const detector = new BeaconZoneDetector(
+      buildZoneLookup(registry),
+      { ...DEFAULT_DETECTOR_CONFIG, minSamples: 1, dwellTimeMs: 1000 },
+      () => -72,
+    );
+    detector.start();
+    expect(detector.update([stat], 0)).toBeNull();
+    expect(detector.update([stat], 750)).toBeNull();
+    expect(detector.update([stat], 1000)?.zoneCode).toBe('ZONE_A01');
+  });
+  it('still rejects a signal below the configured reach', () => {
+    const detector = new BeaconZoneDetector(
+      buildZoneLookup(registry),
+      { ...DEFAULT_DETECTOR_CONFIG, minSamples: 1, dwellTimeMs: 1000 },
+      () => -72,
+    );
+    detector.start();
+    const weak = { ...stat, smoothedRssi: -75, lastRssi: -75 };
+    detector.update([weak], 0);
+    expect(detector.update([weak], 2000)).toBeNull();
+    expect(detector.snapshot().confirmedZone).toBeNull();
+  });
+});
+
 /**
  * Drives the real pipeline (SignalProcessor -> BeaconZoneDetector) on a virtual
  * clock. No Bluetooth, no timers, no React - exactly the code that runs on a

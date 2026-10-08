@@ -7,6 +7,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useFloorPlanI18n } from '@/features/floor-plans/i18n';
 import { tokenStore } from '@/lib/api-client';
+import { indoorMapEnabled } from '@/lib/features';
 import { LanguageToggle, useI18n } from '@/lib/i18n';
 import { AdminProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -23,7 +24,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { href: '/dashboard', label: t('navOverview'), icon: LayoutDashboard },
     { href: '/zones', label: t('navZones'), icon: MapPin },
     { href: '/exhibits', label: t('navExhibits'), icon: Landmark },
-    { href: '/floor-plans', label: tMap('navFloorPlans'), icon: Map },
+    {
+      href: '/floor-plans',
+      label: tMap('navFloorPlans'),
+      icon: Map,
+      note: indoorMapEnabled ? undefined : tMap('comingSoon'),
+    },
     { href: '/beacons', label: t('navBeacons'), icon: Radio },
   ];
 
@@ -48,7 +54,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={cn('flex min-h-11 items-center gap-3 border-l-2 px-4 text-sm transition-colors', active ? 'border-primary bg-accent/60 font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground')}><Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />{item.label}</Link>;
+            return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={cn('flex min-h-11 items-center gap-3 border-l-2 px-4 text-sm transition-colors', active ? 'border-primary bg-accent/60 font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground')}><Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />{item.label}{item.note ? <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{item.note}</span> : null}</Link>;
           })}
         </nav>
         <div className="border-t border-border p-4">

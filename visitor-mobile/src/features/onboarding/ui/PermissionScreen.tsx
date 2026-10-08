@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, AppState, Platform, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../../../application/navigation/types';
 import { useGuide } from '../../tour/model/GuideContext';
 import { t } from '../../../shared/i18n';
@@ -10,8 +11,39 @@ import { Body, Button, Eyebrow, Screen, Title } from '../../../shared/ui';
 type Props = NativeStackScreenProps<RootStackParamList, 'Permission'>;
 
 export function PermissionScreen({ navigation }: Props) {
-  const { language, startScanning, bleError } = useGuide();
+  const { language, startScanning, bluetoothReady, bleError } = useGuide();
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Recheck on return from Settings/Control Center. A granted, powered-on
+  // visitor goes straight to the guide without another app permission screen.
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    let checkingNow = false;
+    const check = async () => {
+      if (checkingNow) return;
+      checkingNow = true;
+      try {
+        if (await bluetoothReady()) {
+          if (!active) return;
+          await startScanning();
+          if (active) navigation.replace('Main', { screen: 'Explore' });
+        }
+      } finally {
+        checkingNow = false;
+        if (active) setChecking(false);
+      }
+    };
+    void check();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void check();
+    });
+    return () => { active = false; subscription.remove(); };
+  }, [bluetoothReady, startScanning, navigation]));
+
+  if (checking) {
+    return <Screen style={styles.screen}><ActivityIndicator color={theme.colors.accentDark} /></Screen>;
+  }
 
   async function handleContinue() {
     setBusy(true);

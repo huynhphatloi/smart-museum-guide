@@ -15,9 +15,22 @@ interface FloorPlan {
   zones: Array<{ code: string; name: string; mapShape: MapShape | null }>;
 }
 
-const COPY: Record<string, { title: string; here: string }> = {
-  vi: { title: 'Vị trí trên bản đồ', here: 'Bạn đang ở đây' },
-  en: { title: 'Where you are', here: 'You are here' },
+/** Experimental room plan. Off by default; the page shows a short notice instead. */
+const INDOOR_MAP = import.meta.env.VITE_INDOOR_MAP === 'true';
+
+const COPY: Record<string, { title: string; here: string; soon: string; soonBody: string }> = {
+  vi: {
+    title: 'Vị trí trên bản đồ',
+    here: 'Bạn đang ở đây',
+    soon: 'Sắp ra mắt',
+    soonBody: 'Bản đồ phòng trưng bày đang được thử nghiệm và sẽ sớm có mặt.',
+  },
+  en: {
+    title: 'Where you are',
+    here: 'You are here',
+    soon: 'Coming soon',
+    soonBody: 'A map of the gallery is being tested and will be available soon.',
+  },
 };
 
 function centreOf(shape: MapShape): { x: number; y: number } {
@@ -32,12 +45,35 @@ function mediaUrl(url: string): string {
   return /^https?:\/\//i.test(url) ? url : `${API_URL.replace(/\/api\/?$/, '')}${url}`;
 }
 
+export function ZoneMap({ zoneCode, language }: { zoneCode: string; language: string }) {
+  return INDOOR_MAP ? (
+    <ZonePlan zoneCode={zoneCode} language={language} />
+  ) : (
+    <MapComingSoon language={language} />
+  );
+}
+
+function MapComingSoon({ language }: { language: string }) {
+  const copy = COPY[language.split('-')[0]] ?? COPY.en;
+  return (
+    <section className="mx-auto max-w-6xl px-5 pb-16 md:px-8">
+      <div className="flex max-w-xl flex-wrap items-center gap-x-3 gap-y-1 border border-dashed border-museum-line bg-museum-paper px-5 py-4">
+        <h2 className="font-serif text-xl text-museum-ink">{copy.title}</h2>
+        <span className="border border-museum-line px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-museum-muted">
+          {copy.soon}
+        </span>
+        <p className="w-full text-sm text-museum-muted">{copy.soonBody}</p>
+      </div>
+    </section>
+  );
+}
+
 /**
  * The QR sticker hangs in the zone, so on this page the visitor's location is
  * known exactly at zone level - show that zone on the room plan. Renders
  * nothing when the zone is not on any plan.
  */
-export function ZoneMap({ zoneCode, language }: { zoneCode: string; language: string }) {
+function ZonePlan({ zoneCode, language }: { zoneCode: string; language: string }) {
   const [plan, setPlan] = useState<FloorPlan | null>(null);
   const copy = COPY[language.split('-')[0]] ?? COPY.en;
 

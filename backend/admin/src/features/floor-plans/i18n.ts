@@ -9,6 +9,11 @@ import { useI18n } from '@/lib/i18n';
  */
 const en = {
   navFloorPlans: 'Maps',
+  comingSoon: 'Coming soon',
+  comingSoonTitle: 'Indoor maps are coming soon',
+  comingSoonBody:
+    'Floor plans and the visitor map are still being tested on site, so they are turned off for now. Zones, beacons and exhibits work without them.',
+  comingSoonHint: 'To try the experimental editor, set NEXT_PUBLIC_INDOOR_MAP=true and rebuild the Admin panel.',
   floorPlans: 'Floor plans',
   floorPlansDescription:
     'Rooms drawn to scale in metres. Visitors see them as the map; indoor positioning works in their coordinates.',
@@ -114,6 +119,11 @@ type Key = keyof typeof en;
 
 const vi: Record<Key, string> = {
   navFloorPlans: 'Bản đồ',
+  comingSoon: 'Sắp ra mắt',
+  comingSoonTitle: 'Bản đồ trong nhà sắp ra mắt',
+  comingSoonBody:
+    'Mặt bằng và bản đồ cho khách đang được thử nghiệm tại chỗ nên tạm thời được tắt. Khu vực, beacon và hiện vật vẫn hoạt động bình thường.',
+  comingSoonHint: 'Để dùng thử trình chỉnh sửa, đặt NEXT_PUBLIC_INDOOR_MAP=true rồi build lại Admin.',
   floorPlans: 'Mặt bằng',
   floorPlansDescription:
     'Các phòng vẽ theo tỉ lệ mét. Khách thấy chúng trên bản đồ; định vị trong nhà tính toạ độ theo đó.',

@@ -53,7 +53,7 @@ export function SettingsScreen() {
         </Row>
       </View>
 
-      {env.staffTools ? (
+      {env.staffTools && env.indoorMap ? (
         <Pressable
           accessibilityRole="button"
           onPress={() => navigation.navigate('Calibration')}

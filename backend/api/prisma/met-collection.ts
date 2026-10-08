@@ -1,8 +1,8 @@
 /**
  * Sixteen sourced Vietnamese works in The Met Open Access collection.
  * The Vietnamese text is original demonstration narration, not the museum's
- * curatorial copy. Each image and factual record is linked in
- * docs/demo-exhibit-sources.md. Translation and speech are generated later by
+ * curatorial copy. Each image source is listed under "Demo content" in the
+ * README. Translation and speech are generated later by
  * the AI service; this seed never invents those outputs.
  */
 import { ExhibitStatus } from '@prisma/client';

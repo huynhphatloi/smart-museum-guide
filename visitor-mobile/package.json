@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Visitor mobile app with BLE beacon detection and QR fallback",
+  "license": "MIT",
   "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",

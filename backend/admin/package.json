@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Admin CMS for the Smart Multilingual Museum Guide",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev -p 4000",
     "build": "next build",

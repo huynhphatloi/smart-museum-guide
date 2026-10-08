@@ -3,8 +3,8 @@
  * Offline evaluation of BLE fingerprint positioning.
  *
  * Runs the very same TypeScript the phone runs (signal processor, replay,
- * WKNN) over a calibration dataset and writes a report with the numbers a
- * thesis needs: error statistics, CDF, the choice of k, and ablations.
+ * WKNN) over a calibration dataset and writes an accuracy report: error
+ * statistics, CDF, the choice of k, and ablations.
  *
  *   npx tsx scripts/evaluate-positioning.ts --file ../research/datasets/DEMO_ROOM-2026-10-01.json
  *   ADMIN_EMAIL=... ADMIN_PASSWORD=... npx tsx scripts/evaluate-positioning.ts \

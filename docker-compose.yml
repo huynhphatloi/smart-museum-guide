@@ -1,8 +1,7 @@
-# Local smoke test for the Coolify-bound images.
+# Local smoke test for the production images.
 # Usage: docker compose up --build
 #
-# Coolify itself should use three separate Applications (not this file),
-# each pointed at the matching Dockerfile / base directory.
+# A real deployment runs each image as its own service (see Deployment in README.md).
 
 services:
   postgres:
@@ -28,7 +27,9 @@ services:
     ports:
       - '3001:3001'
     environment:
-      NODE_ENV: production
+      # Production mode only accepts real HTTPS domains, so the local stack
+      # runs the production image in development mode.
+      NODE_ENV: development
       PORT: '3001'
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/smart_museum_guide?schema=public
       JWT_SECRET: local-docker-compose-jwt-secret-change-me

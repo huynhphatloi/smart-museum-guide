@@ -102,10 +102,11 @@ test('invalid pairs, missing walls and oversized input are rejected', () => {
   assert.throws(() => importDxf(drawing(wall()).replace('300', 'NaN')), error('invalid'));
 });
 
-// Optional integration fixture: keep the user's private room capture outside the repo.
+// Optional: `npm run test:dxf -- <file.dxf>` also checks a real OpenPlan3D room capture,
+// which is not committed to the repository.
 if (process.argv[2]) {
   const contents = await readFile(process.argv[2], 'utf8');
-  test('the supplied OpenPlan3D room capture imports all visual layers at its measured scale', () => {
+  test('a real OpenPlan3D room capture imports all visual layers at its measured scale', () => {
     const plan = importDxf(contents);
     assert.equal(plan.unit, 5);
     assert.equal(plan.widthMeters, 10.49);

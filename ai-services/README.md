@@ -59,15 +59,15 @@ GPU memory: an L4 (24 GB) holds the translator in bf16 plus VoxCPM2. On a T4 (16
 
 ## Run on Google Colab
 
-### Production (Coolify API — preferred)
+### With a deployed API (recommended)
 
-When the backend is deployed on Coolify, the API HTTPS domain is stable. Use that URL so webhooks keep working without updating the notebook after every local tunnel restart.
+When the API is deployed, its HTTPS domain is stable. Use that URL so webhooks keep working without updating the notebook after every local tunnel restart.
 
-1. Deploy the API (see [../README.md](../README.md) and [../deploy/coolify.env.example](../deploy/coolify.env.example)).
-2. Set the same `AI_SERVICE_SECRET` in Coolify and in Colab secrets (`openssl rand -hex 24`).
+1. Deploy the API (see [Deployment](../README.md#deployment)).
+2. Set the same `AI_SERVICE_SECRET` on the API and in Colab secrets (`openssl rand -hex 24`).
 3. Open `notebooks/museum_ai_service.ipynb` in Colab, select a GPU runtime, and add Colab secrets `AI_SERVICE_SECRET` and `HF_TOKEN`.
 4. Set `BACKEND_API_URL` to `https://api.<your-domain>/api` **once**.
-5. **Runtime → Run all**. The notebook still opens its own tunnel as `PUBLIC_URL`; heartbeats teach the Coolify API the current Colab URL.
+5. **Runtime → Run all**. The notebook still opens its own tunnel as `PUBLIC_URL`; heartbeats tell the API the current Colab URL.
 
 Webhook the API must expose publicly:
 

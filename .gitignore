@@ -7,8 +7,6 @@ node_modules/
 dist/
 build/
 .next/
-.next-codex/
-.next-build-codex/
 out/
 *.tsbuildinfo
 
@@ -64,3 +62,6 @@ Thumbs.db
 
 # compiled native BLE scanner (build with: npm run scanner:build)
 backend/api/tools/beacon-scan
+
+# indoor positioning datasets and reports (npm run eval:positioning)
+research/

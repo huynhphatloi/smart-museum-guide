@@ -6,7 +6,7 @@ import { Body, Button, Eyebrow, Pill, Row, Title } from '../../../shared/ui';
 import { useGuide } from '../../tour/model/GuideContext';
 import { pt } from '../i18n';
 import { usePositioning } from '../model/PositioningContext';
-import { centroid } from '../model/zone-geometry';
+import { proximityMarker } from '../model/proximity-marker';
 import { FloorMap } from './FloorMap';
 
 export function MuseumMapScreen() {
@@ -21,13 +21,12 @@ export function MuseumMapScreen() {
   const zoneName =
     registry.find((beacon) => beacon.zoneCode === confirmedZone)?.zoneName ?? confirmedZone;
 
-  // Without a radio map the honest fallback is zone level: a marker at the
-  // centre of the confirmed zone, never a made-up coordinate.
+  // Quick testing needs only registered beacon positions. This marker is a
+  // nearby landmark; fingerprints remain the source of phone coordinates.
   const fallbackPoint = useMemo(() => {
-    if (estimate || !plan || !confirmedZone) return null;
-    const shape = plan.zones.find((zone) => zone.code === confirmedZone)?.mapShape;
-    return shape ? centroid(shape) : null;
-  }, [estimate, plan, confirmedZone]);
+    if (estimate || !plan || !scanning) return null;
+    return proximityMarker(plan, confirmedZone, snapshot.stats);
+  }, [estimate, plan, scanning, confirmedZone, snapshot.stats]);
 
   const referencePoints = useMemo(
     () =>
@@ -43,7 +42,7 @@ export function MuseumMapScreen() {
   const status = !scanning
     ? pt(language, 'statusIdle')
     : !tick || tick.status === 'no-radio-map'
-      ? pt(language, 'statusNoRadioMap')
+      ? pt(language, fallbackPoint ? 'statusNearbyZone' : 'statusNoRadioMap')
       : tick.status === 'weak-signal'
         ? pt(language, 'statusWeak', { n: 2 })
         : pt(language, 'statusOk', { m: (estimate?.spreadM ?? 0).toFixed(1) });
@@ -114,6 +113,10 @@ export function MuseumMapScreen() {
               draggable={Boolean(moveVirtualVisitor)}
               onDragStateChange={setDragging}
             />
+
+            {fallbackPoint ? (
+              <Text style={styles.hint}>{pt(language, 'nearbyZoneHelp')}</Text>
+            ) : null}
 
             {moveVirtualVisitor ? (
               <Text style={styles.hint}>{pt(language, 'simulatorHint')}</Text>

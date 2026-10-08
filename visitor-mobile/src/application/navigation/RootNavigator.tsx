@@ -6,6 +6,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { ExhibitDetailScreen } from '../../features/exhibit/ui/ExhibitDetailScreen';
 import { pt } from '../../features/indoor-positioning/i18n';
 import { CalibrationScreen } from '../../features/indoor-positioning/ui/CalibrationScreen';
+import { MapComingSoonScreen } from '../../features/indoor-positioning/ui/MapComingSoonScreen';
 import { MuseumMapScreen } from '../../features/indoor-positioning/ui/MuseumMapScreen';
 import { PermissionScreen } from '../../features/onboarding/ui/PermissionScreen';
 import { WelcomeScreen } from '../../features/onboarding/ui/WelcomeScreen';
@@ -13,6 +14,7 @@ import { SettingsScreen } from '../../features/preferences/ui/SettingsScreen';
 import { QrScreen } from '../../features/qr/ui/QrScreen';
 import { useGuide } from '../../features/tour/model/GuideContext';
 import { ExploreScreen } from '../../features/tour/ui/ExploreScreen';
+import { env } from '../../shared/config/env';
 import { t } from '../../shared/i18n';
 import { theme } from '../../shared/theme';
 import { navigationRef } from './navigation-ref';
@@ -64,7 +66,7 @@ function MainTabs() {
       />
       <Tabs.Screen
         name="Map"
-        component={MuseumMapScreen}
+        component={env.indoorMap ? MuseumMapScreen : MapComingSoonScreen}
         options={{ title: pt(language, 'mapTab'), tabBarIcon: tabIcon('map') }}
       />
       <Tabs.Screen
@@ -116,11 +118,13 @@ export function RootNavigator() {
           component={ExhibitDetailScreen}
           options={{ title: t(language, 'currentExhibit') }}
         />
-        <Stack.Screen
-          name="Calibration"
-          component={CalibrationScreen}
-          options={{ title: pt(language, 'calibration') }}
-        />
+        {env.indoorMap ? (
+          <Stack.Screen
+            name="Calibration"
+            component={CalibrationScreen}
+            options={{ title: pt(language, 'calibration') }}
+          />
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

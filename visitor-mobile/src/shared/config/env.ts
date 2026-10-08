@@ -6,6 +6,8 @@ const publicBuildEnv: Record<string, string | undefined> = {
   EXPO_PUBLIC_BLE_SIMULATION: process.env.EXPO_PUBLIC_BLE_SIMULATION,
   EXPO_PUBLIC_DEFAULT_LANGUAGE: process.env.EXPO_PUBLIC_DEFAULT_LANGUAGE,
   EXPO_PUBLIC_STAFF_TOOLS: process.env.EXPO_PUBLIC_STAFF_TOOLS,
+  EXPO_PUBLIC_INDOOR_MAP: process.env.EXPO_PUBLIC_INDOOR_MAP,
+  EXPO_PUBLIC_MIN_SAMPLES: process.env.EXPO_PUBLIC_MIN_SAMPLES,
   EXPO_PUBLIC_SCAN_WINDOW_MS: process.env.EXPO_PUBLIC_SCAN_WINDOW_MS,
   EXPO_PUBLIC_DWELL_TIME_MS: process.env.EXPO_PUBLIC_DWELL_TIME_MS,
   EXPO_PUBLIC_HYSTERESIS_DB: process.env.EXPO_PUBLIC_HYSTERESIS_DB,
@@ -56,7 +58,15 @@ export const env = {
   /** Shows the staff calibration tool in Settings. Off in visitor builds. */
   staffTools: readBoolean('EXPO_PUBLIC_STAFF_TOOLS', false),
 
+  /**
+   * Experimental indoor map (fingerprint positioning). Off by default: the Map
+   * tab shows a "coming soon" notice until positioning is accurate enough.
+   */
+  indoorMap: readBoolean('EXPO_PUBLIC_INDOOR_MAP', false),
+
   ble: {
+    /** Minimum readings before zone detection; fast hardware tests can use one. */
+    minSamples: readNumber('EXPO_PUBLIC_MIN_SAMPLES', 2),
     /** Length of the RSSI sliding window. */
     scanWindowMs: readNumber('EXPO_PUBLIC_SCAN_WINDOW_MS', 4000),
     /** How long a challenger must stay dominant before the zone changes. */

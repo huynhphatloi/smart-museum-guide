@@ -55,6 +55,7 @@ interface GuideContextValue {
   bleError: string | null;
   snapshot: DetectionSnapshot;
   startScanning: () => Promise<void>;
+  bluetoothReady: () => Promise<boolean>;
   stopScanning: () => Promise<void>;
   /**
    * The running pipeline, for features that listen to the same signals
@@ -249,42 +250,8 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     [loadExhibitForBeacon],
   );
 
-  const startScanning = useCallback(async () => {
-    if (scannerRef.current) {
-      // A failed native scan can leave the processing timer running. Restart
-      // the source as well, so Try again really requests another native scan.
-      await scannerRef.current.stop();
-      setBleError(null);
-      setScanning(true);
-      await scannerRef.current.start();
-      return;
-    }
-
-    if (registry.length === 0) {
-      setBleError(t(languageRef.current, 'noBeacons'));
-      return;
-    }
-
-    const config = {
-      ...DEFAULT_SCANNER_CONFIG,
-      scanWindowMs: env.ble.scanWindowMs,
-      dwellTimeMs: env.ble.dwellTimeMs,
-      hysteresisDb: env.ble.hysteresisDb,
-      minRssi: env.ble.minRssi,
-      notificationCooldownMs: env.ble.notificationCooldownMs,
-      tickIntervalMs: env.ble.tickIntervalMs,
-    };
-
-    let source;
-    if (env.bleSimulation) {
-      const simulated = new SimulatedBleSignalSource(
-        // Built from the museum's real registry, so the simulator advertises
-        // the same protocol and namespace/instance the hardware would.
-        simulatedBeaconsFromRegistry(registry, (_beacon, index) => (index === 0 ? -62 : -88)),
-      );
-      source = simulated;
-      setSimulator(simulated);
-    } else {
+  const getRealSource = useCallback(() => {
+    if (!realSourceRef.current) {
       const real = new RealBleSignalSource(registry, {
         onReady: () => {
           setBleError(null);
@@ -304,7 +271,54 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
         },
       });
       realSourceRef.current = real;
-      source = real;
+    }
+    realSourceRef.current.setRegistry(registry);
+    return realSourceRef.current;
+  }, [registry]);
+
+  const bluetoothReady = useCallback(
+    () => (env.bleSimulation ? Promise.resolve(true) : getRealSource().isBluetoothReady()),
+    [getRealSource],
+  );
+
+  const startScanning = useCallback(async () => {
+    if (scannerRef.current) {
+      // A failed native scan can leave the processing timer running. Restart
+      // the source as well, so Try again really requests another native scan.
+      await scannerRef.current.stop();
+      setBleError(null);
+      setScanning(true);
+      await scannerRef.current.start();
+      return;
+    }
+
+    if (registry.length === 0) {
+      setBleError(t(languageRef.current, 'noBeacons'));
+      return;
+    }
+
+    const config = {
+      ...DEFAULT_SCANNER_CONFIG,
+      minSamples: env.ble.minSamples,
+      scanWindowMs: env.ble.scanWindowMs,
+      dwellTimeMs: env.ble.dwellTimeMs,
+      hysteresisDb: env.ble.hysteresisDb,
+      minRssi: env.ble.minRssi,
+      notificationCooldownMs: env.ble.notificationCooldownMs,
+      tickIntervalMs: env.ble.tickIntervalMs,
+    };
+
+    let source;
+    if (env.bleSimulation) {
+      const simulated = new SimulatedBleSignalSource(
+        // Built from the museum's real registry, so the simulator advertises
+        // the same protocol and namespace/instance the hardware would.
+        simulatedBeaconsFromRegistry(registry, (_beacon, index) => (index === 0 ? -62 : -88)),
+      );
+      source = simulated;
+      setSimulator(simulated);
+    } else {
+      source = getRealSource();
     }
 
     const scanner = new BeaconScanner(source, registry, config);
@@ -316,7 +330,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     setBleError(null);
     setScanning(true);
     await scanner.start();
-  }, [registry, handleZoneConfirmed]);
+  }, [registry, handleZoneConfirmed, getRealSource]);
 
   const stopScanning = useCallback(async () => {
     await scannerRef.current?.stop();
@@ -355,6 +369,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       bleError,
       snapshot,
       startScanning,
+      bluetoothReady,
       stopScanning,
       scanner: activeScanner,
       simulator,
@@ -380,6 +395,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       bleError,
       snapshot,
       startScanning,
+      bluetoothReady,
       stopScanning,
       activeScanner,
       simulator,

@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PositioningProvider } from '../features/indoor-positioning/model/PositioningContext';
 import { ZoneNotificationBridge } from '../features/indoor-positioning/model/ZoneNotificationBridge';
 import { GuideProvider } from '../features/tour/model/GuideContext';
+import { env } from '../shared/config/env';
 import { RootNavigator } from './navigation/RootNavigator';
 
 export default function App() {
@@ -19,11 +20,16 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <GuideProvider>
-          <PositioningProvider>
-            <StatusBar style="dark" />
-            <ZoneNotificationBridge />
+          <StatusBar style="dark" />
+          <ZoneNotificationBridge />
+          {/* The positioning engine only runs when the experimental map is on. */}
+          {env.indoorMap ? (
+            <PositioningProvider>
+              <RootNavigator />
+            </PositioningProvider>
+          ) : (
             <RootNavigator />
-          </PositioningProvider>
+          )}
         </GuideProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

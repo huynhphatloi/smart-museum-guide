@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../../../application/navigation/types';
 import { LanguagePicker } from '../../preferences/ui/LanguagePicker';
@@ -12,7 +12,29 @@ import { Body, Button, Screen, Subtitle } from '../../../shared/ui';
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
 export function WelcomeScreen({ navigation }: Props) {
-  const { language, languageOptions, setLanguage, ready, registryError } = useGuide();
+  const { language, languageOptions, setLanguage, ready, registryError, bluetoothReady, startScanning } = useGuide();
+  const [checkingBluetooth, setCheckingBluetooth] = useState(false);
+  const starting = useRef(false);
+
+  async function handleStartTour() {
+    if (starting.current) return;
+    starting.current = true;
+    setCheckingBluetooth(true);
+    try {
+      const readyToScan = await bluetoothReady();
+      if (!navigation.isFocused()) return;
+      if (readyToScan) {
+        await startScanning();
+        if (navigation.isFocused()) navigation.navigate('Main', { screen: 'Explore' });
+      } else {
+        navigation.navigate('Permission');
+      }
+    } finally {
+      starting.current = false;
+      setCheckingBluetooth(false);
+    }
+  }
+
   const reveal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -61,7 +83,7 @@ export function WelcomeScreen({ navigation }: Props) {
       <View style={styles.actions}>
         {ready ? registryError ? (
           <Button label={t(language, 'useQrInstead')} onPress={() => navigation.navigate('Main', { screen: 'Qr' })} />
-        ) : <><Button label={t(language, 'startTour')} onPress={() => navigation.navigate('Permission')} /><Button label={t(language, 'useQrInstead')} variant="ghost" onPress={() => navigation.navigate('Main', { screen: 'Qr' })} /></> : <ActivityIndicator color={theme.colors.accentDark} />}
+        ) : <><Button label={t(language, 'startTour')} onPress={handleStartTour} loading={checkingBluetooth} /><Button label={t(language, 'useQrInstead')} variant="ghost" onPress={() => navigation.navigate('Main', { screen: 'Qr' })} /></> : <ActivityIndicator color={theme.colors.accentDark} />}
       </View>
     </Screen>
   );

@@ -8,6 +8,7 @@ import {
   Subscription,
 } from 'react-native-ble-plx';
 import { readAdvertisement } from '../advertisement';
+import { bluetoothIsReady } from '../bluetooth-ready';
 import { RegisteredBeacon, buildBeaconIndex, matchBeacon } from '../beacon-registry';
 import { EDDYSTONE_SERVICE_UUID } from '../eddystone';
 import { BeaconSignal, BeaconSignalSource } from '../types';
@@ -32,7 +33,7 @@ export interface RealBleSourceOptions {
  *
  * IMPORTANT: this requires a native build. `react-native-ble-plx` is a native
  * module and does NOT work in the standard Expo Go client - the project must be
- * run through an Expo Development Build (see README / docs/ble-detection.md).
+ * run through an Expo Development Build (see "Mobile app and BLE" in the README).
  *
  * Identity comes from the advertised payload: Eddystone UID service data first
  * (readable on both Android and iOS), iBeacon manufacturer data second. The BLE
@@ -64,6 +65,11 @@ export class RealBleSignalSource implements BeaconSignalSource {
   /** The registry can be refreshed while the app runs (staff added a beacon). */
   setRegistry(registry: readonly RegisteredBeacon[]): void {
     this.index = buildBeaconIndex(registry);
+  }
+
+  /** Check using the same native manager as scanning; do not prompt twice. */
+  isBluetoothReady(): Promise<boolean> {
+    return bluetoothIsReady(this.getManager());
   }
 
   async start(): Promise<void> {

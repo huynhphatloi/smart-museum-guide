@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Smart Museum Guide API and Admin panel",
+  "license": "MIT",
   "workspaces": [
     "api",
     "admin"
