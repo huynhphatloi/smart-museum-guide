@@ -214,6 +214,9 @@ const en = {
   attachments: 'Attachments',
   attachmentsHint: 'Images and video shared across every language.',
   languageVariants: 'Language variants',
+  selectAllLanguages: 'Select all',
+  clearLanguageSelection: 'Clear selection',
+  selectedLanguageCount: '{count}/{total} languages selected · primary language included',
   languageVariantsHint:
     'The primary language is always narrated. On save, selected languages are sent to the AI service to be translated from the primary copy and narrated, unless they are already up to date.',
   primaryIncluded: 'primary',
@@ -559,6 +562,9 @@ const vi: { [K in keyof typeof en]: string } = {
   attachments: 'Tệp đính kèm',
   attachmentsHint: 'Ảnh và video dùng chung cho mọi ngôn ngữ.',
   languageVariants: 'Các bản ngôn ngữ',
+  selectAllLanguages: 'Chọn tất cả',
+  clearLanguageSelection: 'Bỏ chọn',
+  selectedLanguageCount: 'Đã chọn {count}/{total} ngôn ngữ · bao gồm ngôn ngữ chính',
   languageVariantsHint:
     'Ngôn ngữ chính luôn có thuyết minh. Khi lưu, các ngôn ngữ đã chọn được gửi sang AI service để dịch từ bản gốc và tạo thuyết minh, trừ khi đã cập nhật sẵn.',
   primaryIncluded: 'chính',

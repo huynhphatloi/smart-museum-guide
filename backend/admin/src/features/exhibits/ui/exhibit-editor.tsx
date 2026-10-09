@@ -555,6 +555,41 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
             <CardDescription>{t('languageVariantsHint')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                {t('selectedLanguageCount', {
+                  count: String(
+                    chipLanguages.filter(
+                      (language) =>
+                        isOffered(language.code) && selectedLanguages.includes(language.code),
+                    ).length,
+                  ),
+                  total: String(offeredCodes.size),
+                })}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={languagesQuery.isLoading || offeredCodes.size === 0}
+                  onClick={() =>
+                    setVariants([...offeredCodes].filter((code) => code !== primaryLanguage))
+                  }
+                >
+                  {t('selectAllLanguages')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!variants.some((code) => offeredCodes.has(code))}
+                  onClick={() => setVariants([])}
+                >
+                  {t('clearLanguageSelection')}
+                </Button>
+              </div>
+            </div>
             {languagesQuery.isLoading ? (
               <Skeleton className="h-20" />
             ) : (
@@ -569,6 +604,7 @@ export function ExhibitEditor({ exhibit }: { exhibit?: Exhibit }) {
                     <button
                       key={languageCode}
                       type="button"
+                      aria-pressed={selected}
                       disabled={isPrimary || !offered}
                       title={language.name}
                       onClick={() => toggleVariant(languageCode)}
