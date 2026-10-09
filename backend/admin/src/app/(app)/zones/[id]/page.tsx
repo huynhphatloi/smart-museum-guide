@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { FormEvent } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,10 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { Exhibit, Paginated, Zone, ZoneDetail } from '@/lib/types';
+import { ZoneDisplayControls } from '@/features/schedule/ui/zone-display-controls';
+import { Zone, ZoneDetail } from '@/lib/types';
 
 export default function ZoneDetailPage() {
   const { t } = useI18n();
@@ -25,25 +26,16 @@ export default function ZoneDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const zoneId = params.id;
-  const [picked, setPicked] = useState('');
-  const [exhibitSearch, setExhibitSearch] = useState('');
 
   const zoneQuery = useQuery({
     queryKey: ['zone', zoneId],
     queryFn: () => apiFetch<ZoneDetail>(`/admin/zones/${zoneId}`),
+    refetchInterval: 10_000,
   });
 
   const qrQuery = useQuery({
     queryKey: ['zone-qr', zoneId],
     queryFn: () => apiFetch<{ value: string; dataUrl: string }>(`/admin/zones/${zoneId}/qr`),
-  });
-
-  const exhibitsQuery = useQuery({
-    queryKey: ['exhibits', 'PUBLISHED', exhibitSearch],
-    queryFn: () =>
-      apiFetch<Paginated<Exhibit>>(
-        `/admin/exhibits?status=PUBLISHED&pageSize=100${exhibitSearch ? `&search=${encodeURIComponent(exhibitSearch)}` : ''}`,
-      ),
   });
 
   const invalidate = () => {
@@ -61,28 +53,6 @@ export default function ZoneDetailPage() {
     },
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : t('zoneUpdateError')),
-  });
-
-  const setCurrent = useMutation({
-    mutationFn: (exhibitId: string) =>
-      apiFetch(`/admin/zones/${zoneId}/current-exhibit`, { method: 'PUT', body: { exhibitId } }),
-    onSuccess: () => {
-      toast.success(t('exhibitSet'));
-      setPicked('');
-      invalidate();
-    },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : t('exhibitChangeError')),
-  });
-
-  const clearCurrent = useMutation({
-    mutationFn: () => apiFetch(`/admin/zones/${zoneId}/current-exhibit`, { method: 'DELETE' }),
-    onSuccess: () => {
-      toast.success(t('zoneEmptied'));
-      invalidate();
-    },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : t('zoneEmptyError')),
   });
 
   const removeZone = useMutation({
@@ -110,7 +80,6 @@ export default function ZoneDetailPage() {
 
   const zone = zoneQuery.data;
   const current = zone.currentAssignment;
-  const publishable = exhibitsQuery.data?.items ?? [];
 
   function handleSaveZone(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -151,39 +120,6 @@ export default function ZoneDetailPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('zoneSettings')}</CardTitle>
-          <CardDescription>{t('zoneSettingsHint')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSaveZone}>
-            <div className="space-y-2">
-              <Label htmlFor="name">{t('name')}</Label>
-              <Input id="name" name="name" defaultValue={zone.name} required key={zone.updatedAt} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="floor">{t('floor')}</Label>
-              <Input id="floor" name="floor" defaultValue={zone.floor ?? ''} key={zone.updatedAt} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="description">{t('description')}</Label>
-              <Textarea
-                id="description"
-                name="description"
-                defaultValue={zone.description ?? ''}
-                key={zone.updatedAt}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <Button type="submit" disabled={saveZone.isPending}>
-                {saveZone.isPending ? t('saving') : t('saveZone')}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -196,12 +132,17 @@ export default function ZoneDetailPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{current.exhibit.defaultTitle}</p>
                   <Badge variant={current.exhibit.status === 'PUBLISHED' ? 'success' : 'warning'}>
-                    {current.exhibit.status === 'PUBLISHED' ? t('filterPUBLISHED') : current.exhibit.status === 'DRAFT' ? t('filterDRAFT') : t('filterARCHIVED')}
+                    {current.exhibit.status === 'PUBLISHED'
+                      ? t('filterPUBLISHED')
+                      : current.exhibit.status === 'DRAFT'
+                        ? t('filterDRAFT')
+                        : t('filterARCHIVED')}
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{current.exhibit.code}</p>
                 <p className="mt-2 text-sm">
-                  {t('onDisplaySince', { date: formatDate(current.activeFrom) })}
+                  {t('onDisplaySince', { date: formatDateTime(current.activeFrom) })}
+                  {current.activeTo ? ` → ${formatDateTime(current.activeTo)}` : ''}
                 </p>
                 {zone.currentReason === 'EXHIBIT_NOT_PUBLISHED' ? (
                   <p className="mt-2 text-sm text-amber-700">{t('assignedNotPublished')}</p>
@@ -217,60 +158,7 @@ export default function ZoneDetailPage() {
               <EmptyState title={t('nothingOnDisplay')} description={t('nothingOnDisplayHint')} />
             )}
 
-            <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
-              <Label htmlFor="exhibit">{t('changeExhibit')}</Label>
-              <Input
-                aria-label={t('searchExhibits')}
-                placeholder={t('searchExhibits')}
-                value={exhibitSearch}
-                onChange={(event) => {
-                  setExhibitSearch(event.target.value);
-                  setPicked('');
-                }}
-              />
-              <div className="flex flex-wrap gap-2">
-                <select
-                  id="exhibit"
-                  className="h-10 min-w-[240px] flex-1 rounded-md border border-input bg-background px-3 text-sm"
-                  value={picked}
-                  onChange={(event) => setPicked(event.target.value)}
-                >
-                  <option value="">{t('selectExhibit')}</option>
-                  {publishable.map((exhibit) => (
-                    <option key={exhibit.id} value={exhibit.id}>
-                      {exhibit.code} — {exhibit.defaultTitle}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  disabled={!picked || setCurrent.isPending}
-                  onClick={() => setCurrent.mutate(picked)}
-                >
-                  {setCurrent.isPending ? t('saving') : t('setAsCurrent')}
-                </Button>
-                {current ? (
-                  <Button
-                    variant="outline"
-                    disabled={clearCurrent.isPending}
-                    onClick={() => {
-                      if (window.confirm(t('emptyZoneConfirm'))) {
-                        clearCurrent.mutate();
-                      }
-                    }}
-                  >
-                    {t('emptyZone')}
-                  </Button>
-                ) : null}
-              </div>
-              {exhibitsQuery.isError ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {t('listLoadError')}
-                </p>
-              ) : !exhibitsQuery.isLoading && publishable.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('noPublishedExhibits')}</p>
-              ) : null}
-              <p className="text-xs text-muted-foreground">{t('beaconQrUntouched')}</p>
-            </div>
+            <ZoneDisplayControls zone={zone} onChanged={invalidate} />
 
             <div>
               <h3 className="mb-2 text-sm font-semibold">{t('previouslyInRoom')}</h3>
@@ -282,7 +170,8 @@ export default function ZoneDetailPage() {
                     <li key={assignment.id} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">{assignment.exhibit.defaultTitle}</p>
                       <p className="text-muted-foreground">
-                        {formatDate(assignment.activeFrom)} → {formatDate(assignment.activeTo)}
+                        {formatDateTime(assignment.activeFrom)} →{' '}
+                        {formatDateTime(assignment.activeTo)}
                       </p>
                     </li>
                   ))}
@@ -293,6 +182,50 @@ export default function ZoneDetailPage() {
         </Card>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('zoneSettings')}</CardTitle>
+              <CardDescription>{t('zoneSettingsHint')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="grid gap-4 " onSubmit={handleSaveZone}>
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t('name')}</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    defaultValue={zone.name}
+                    required
+                    key={zone.updatedAt}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="floor">{t('floor')}</Label>
+                  <Input
+                    id="floor"
+                    name="floor"
+                    defaultValue={zone.floor ?? ''}
+                    key={zone.updatedAt}
+                  />
+                </div>
+                <div className="space-y-2 ">
+                  <Label htmlFor="description">{t('description')}</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    defaultValue={zone.description ?? ''}
+                    key={zone.updatedAt}
+                  />
+                </div>
+                <div className="">
+                  <Button type="submit" disabled={saveZone.isPending}>
+                    {saveZone.isPending ? t('saving') : t('saveZone')}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>{t('beaconsInZone')}</CardTitle>

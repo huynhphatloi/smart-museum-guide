@@ -8,6 +8,7 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    public readonly details?: { nextChangeAt?: string | null; resolvedAt?: string },
   ) {
     super(message);
     this.name = 'ApiError';
@@ -25,8 +26,17 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const body = (payload ?? {}) as { code?: string; message?: string };
-    throw new ApiError(response.status, body.code ?? 'UNKNOWN', body.message ?? 'Request failed.');
+    const body = (payload ?? {}) as {
+      code?: string;
+      message?: string;
+      details?: ApiError['details'];
+    };
+    throw new ApiError(
+      response.status,
+      body.code ?? 'UNKNOWN',
+      body.message ?? 'Request failed.',
+      body.details,
+    );
   }
 
   return payload as T;

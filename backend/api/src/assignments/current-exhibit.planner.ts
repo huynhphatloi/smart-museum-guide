@@ -19,20 +19,18 @@ export interface CurrentExhibitPlan {
   /** Assignments to remove outright - rows that never went on display. */
   deleteAssignmentIds: string[];
   /** New open ended assignment to create. */
-  create: { exhibitId: string; activeFrom: Date } | null;
+  create: { exhibitId: string; activeFrom: Date; activeTo: Date | null; autoEnd: boolean } | null;
 }
 
 /**
  * Pure decision step behind "set the current exhibit for this zone".
  *
- * The museum's staff no longer think in date ranges - they pick what is in the
- * room. Underneath, the dated assignment model is preserved, because that is
- * what lets a beacon and a QR code stay fixed while exhibits rotate, and what
- * keeps a record of what stood where.
+ * Immediate changes keep all upcoming schedules. The replacement remains on
+ * display until the next scheduled start, while the previous exhibit becomes history.
  *
  * Rules:
  *  - the assignment currently on display is *ended*, not deleted, so history survives
- *  - an assignment that has not started yet is deleted, since nothing ever saw it
+ *  - future assignments remain untouched
  *  - an assignment created in the same instant is deleted rather than closed,
  *    so a double click cannot produce a zero-length interval
  */
@@ -44,7 +42,11 @@ export function planCurrentExhibitChange(
   const active = selectActiveAssignment(existing, now);
   const future = existing.filter((assignment) => assignment.activeFrom.getTime() > now.getTime());
 
-  const deleteAssignmentIds = future.map((assignment) => assignment.id);
+  const deleteAssignmentIds: string[] = [];
+  const nextStart = future.reduce<Date | null>(
+    (next, assignment) => (!next || assignment.activeFrom < next ? assignment.activeFrom : next),
+    null,
+  );
   let closeAssignmentId: string | null = null;
 
   if (active) {
@@ -59,7 +61,6 @@ export function planCurrentExhibitChange(
     exhibitId !== null &&
     active !== null &&
     active.exhibitId === exhibitId &&
-    active.activeTo === null &&
     deleteAssignmentIds.length === 0;
 
   if (alreadyCorrect) {
@@ -75,6 +76,13 @@ export function planCurrentExhibitChange(
     unchanged: false,
     closeAssignmentId,
     deleteAssignmentIds,
-    create: clearing ? null : { exhibitId: exhibitId as string, activeFrom: now },
+    create: clearing
+      ? null
+      : {
+          exhibitId: exhibitId as string,
+          activeFrom: now,
+          activeTo: nextStart,
+          autoEnd: true,
+        },
   };
 }

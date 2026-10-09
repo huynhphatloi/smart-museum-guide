@@ -69,6 +69,7 @@ export function MuseumMapScreen() {
             </Eyebrow>
             <Title>{pt(language, 'mapTitle')}</Title>
           </View>
+          <Pill label={pt(language, 'comingSoon')} />
         </Row>
 
         {floorPlans.length > 1 ? (

@@ -7,7 +7,6 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useFloorPlanI18n } from '@/features/floor-plans/i18n';
 import { tokenStore } from '@/lib/api-client';
-import { indoorMapEnabled } from '@/lib/features';
 import { LanguageToggle, useI18n } from '@/lib/i18n';
 import { AdminProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -28,7 +27,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       href: '/floor-plans',
       label: tMap('navFloorPlans'),
       icon: Map,
-      note: indoorMapEnabled ? undefined : tMap('comingSoon'),
+      note: tMap('comingSoon'),
     },
     { href: '/beacons', label: t('navBeacons'), icon: Radio },
   ];

@@ -78,12 +78,12 @@ export class ZonesService {
       currentAssignment: timeline.current,
       currentReason: timeline.currentReason,
       history: timeline.history,
+      upcoming: timeline.upcoming,
     };
   }
 
   /**
-   * "What is in this room right now." Replaces the old scheduling screen:
-   * staff pick an exhibit, the assignment bookkeeping happens underneath.
+   * Change what is in the room now, preserving upcoming schedules.
    */
   async setCurrentExhibit(id: string, exhibitId: string | null) {
     await this.assertExists(id);
@@ -127,7 +127,9 @@ export class ZonesService {
       const parsed = parseMapShape(mapShape);
       if (!parsed.ok) throw new MapShapeInvalidException(parsed.reason);
       if (!targetPlanId) {
-        throw new MapShapeInvalidException('A zone needs a floor plan before it can have an outline.');
+        throw new MapShapeInvalidException(
+          'A zone needs a floor plan before it can have an outline.',
+        );
       }
       const plan = await this.prisma.floorPlan.findUnique({ where: { id: targetPlanId } });
       if (!plan) throw new FloorPlanNotFoundException(targetPlanId);

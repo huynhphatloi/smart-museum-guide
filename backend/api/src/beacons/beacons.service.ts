@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Beacon, BeaconProtocol, Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { Paginated, paginate } from '../common/dto/pagination.dto';
 import {
   BeaconIdentityInvalidException,
@@ -124,7 +125,9 @@ export class BeaconsService {
 
     return this.prisma.beacon.create({
       data: {
-        identifier: dto.identifier.toUpperCase().trim(),
+        identifier: (dto.identifier ?? `BEACON_${randomUUID().replaceAll('-', '').slice(0, 16)}`)
+          .toUpperCase()
+          .trim(),
         name: dto.name.trim(),
         zoneId: dto.zoneId,
         protocol,

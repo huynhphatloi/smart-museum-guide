@@ -24,7 +24,7 @@ describe('planCurrentExhibitChange', () => {
       unchanged: false,
       closeAssignmentId: null,
       deleteAssignmentIds: [],
-      create: { exhibitId: 'exhibit-a', activeFrom: NOW },
+      create: { exhibitId: 'exhibit-a', activeFrom: NOW, activeTo: null, autoEnd: true },
     });
   });
 
@@ -34,7 +34,12 @@ describe('planCurrentExhibitChange', () => {
     const plan = planCurrentExhibitChange(existing, 'exhibit-b', NOW);
 
     expect(plan.closeAssignmentId).toBe('current');
-    expect(plan.create).toEqual({ exhibitId: 'exhibit-b', activeFrom: NOW });
+    expect(plan.create).toEqual({
+      exhibitId: 'exhibit-b',
+      activeFrom: NOW,
+      activeTo: null,
+      autoEnd: true,
+    });
     expect(plan.deleteAssignmentIds).toEqual([]);
   });
 
@@ -69,7 +74,7 @@ describe('planCurrentExhibitChange', () => {
     expect(plan.deleteAssignmentIds).toEqual([]);
   });
 
-  it('removes assignments that were never on display', () => {
+  it('keeps upcoming schedules when changing now', () => {
     const existing = [
       row('current', 'exhibit-a', '2026-01-01T00:00:00Z', null),
       row('future', 'exhibit-c', '2027-01-01T00:00:00Z', null),
@@ -77,7 +82,8 @@ describe('planCurrentExhibitChange', () => {
 
     const plan = planCurrentExhibitChange(existing, 'exhibit-b', NOW);
 
-    expect(plan.deleteAssignmentIds).toEqual(['future']);
+    expect(plan.deleteAssignmentIds).toEqual([]);
+    expect(plan.create?.activeTo).toEqual(at('2027-01-01T00:00:00Z'));
     expect(plan.closeAssignmentId).toBe('current');
   });
 

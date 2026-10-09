@@ -12,6 +12,7 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    public readonly details?: { nextChangeAt?: string | null; resolvedAt?: string },
   ) {
     super(message);
     this.name = 'ApiError';
@@ -52,8 +53,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const body = (payload ?? {}) as { code?: string; message?: string };
-    throw new ApiError(response.status, body.code ?? 'UNKNOWN', body.message ?? 'Request failed.');
+    const body = (payload ?? {}) as {
+      code?: string;
+      message?: string;
+      details?: ApiError['details'];
+    };
+    throw new ApiError(
+      response.status,
+      body.code ?? 'UNKNOWN',
+      body.message ?? 'Request failed.',
+      body.details,
+    );
   }
 
   return payload as T;
@@ -84,7 +94,9 @@ export const api = {
 
   /** Calibration fingerprints of one room, every device - the phone picks its own. */
   fingerprints: (floorPlanId: string) =>
-    request<CaptureFingerprint[]>(`/public/floor-plans/${encodeURIComponent(floorPlanId)}/fingerprints`),
+    request<CaptureFingerprint[]>(
+      `/public/floor-plans/${encodeURIComponent(floorPlanId)}/fingerprints`,
+    ),
 
   // --- staff calibration tool ----------------------------------------------
 
@@ -113,11 +125,14 @@ export const api = {
     ),
 
   setBeaconMinRssi: (token: string, beaconId: string, minRssi: number) =>
-    request<{ id: string; minRssi: number | null }>(`/admin/beacons/${encodeURIComponent(beaconId)}`, {
-      method: 'PATCH',
-      body: { minRssi },
-      token,
-    }),
+    request<{ id: string; minRssi: number | null }>(
+      `/admin/beacons/${encodeURIComponent(beaconId)}`,
+      {
+        method: 'PATCH',
+        body: { minRssi },
+        token,
+      },
+    ),
 };
 
 export interface StaffFloorPlan {

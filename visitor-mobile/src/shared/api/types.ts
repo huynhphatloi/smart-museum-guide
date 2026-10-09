@@ -37,6 +37,7 @@ export interface ActiveExhibitResponse {
   assignment: { id: string; activeFrom: string; activeTo: string | null };
   exhibit: LocalisedExhibit;
   resolvedAt: string;
+  nextChangeAt?: string | null;
 }
 
 export interface LanguageOption {

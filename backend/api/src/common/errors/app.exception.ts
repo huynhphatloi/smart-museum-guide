@@ -72,11 +72,12 @@ export class BeaconIdentityInvalidException extends AppException {
 }
 
 export class NoActiveExhibitException extends AppException {
-  constructor(zoneCode: string, at: Date) {
+  constructor(zoneCode: string, at: Date, nextChangeAt: string | null = null) {
     super(
       ErrorCode.NO_ACTIVE_EXHIBIT,
       `No published exhibit is scheduled in zone "${zoneCode}" at ${at.toISOString()}.`,
       HttpStatus.NOT_FOUND,
+      { nextChangeAt, resolvedAt: at.toISOString() },
     );
   }
 }

@@ -74,6 +74,7 @@ export class ExhibitResolverService {
         exhibitId: true,
         activeFrom: true,
         activeTo: true,
+        autoEnd: true,
         exhibit: {
           select: { id: true, code: true, defaultTitle: true, status: true },
         },
@@ -95,11 +96,10 @@ export class ExhibitResolverService {
 
   /**
    * Zone view used by the admin CMS: what is on display now, and what stood
-   * here before it. Staff no longer schedule ahead, so there is no "upcoming" -
-   * but the record of what was displayed when is kept.
+   * here before it, and upcoming scheduled changes.
    */
   async getZoneTimeline(zoneId: string, at: Date = new Date(), historyLimit = 20) {
-    const [current, history] = await Promise.all([
+    const [current, history, upcoming] = await Promise.all([
       this.resolveActiveExhibit(zoneId, at, { requirePublished: false }),
       this.prisma.exhibitAssignment.findMany({
         where: { zoneId, activeTo: { not: null, lte: at } },
@@ -109,8 +109,15 @@ export class ExhibitResolverService {
           exhibit: { select: { id: true, code: true, defaultTitle: true, status: true } },
         },
       }),
+      this.prisma.exhibitAssignment.findMany({
+        where: { zoneId, activeFrom: { gt: at } },
+        orderBy: { activeFrom: 'asc' },
+        include: {
+          exhibit: { select: { id: true, code: true, defaultTitle: true, status: true } },
+        },
+      }),
     ]);
 
-    return { current: current.assignment, currentReason: current.reason, history };
+    return { current: current.assignment, currentReason: current.reason, history, upcoming };
   }
 }

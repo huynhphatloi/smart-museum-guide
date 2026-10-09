@@ -92,7 +92,7 @@ function ZonePlan({ zoneCode, language }: { zoneCode: string; language: string }
     return () => controller.abort();
   }, [zoneCode]);
 
-  if (!plan) return null;
+  if (!plan) return <MapComingSoon language={language} />;
 
   const { widthMeters: w, heightMeters: h } = plan;
   const unit = Math.max(w, h) / 50;
@@ -101,7 +101,12 @@ function ZonePlan({ zoneCode, language }: { zoneCode: string; language: string }
 
   return (
     <section className="mx-auto max-w-6xl px-5 pb-16 md:px-8">
-      <h2 className="mb-1 font-serif text-2xl text-museum-ink">{copy.title}</h2>
+      <div className="mb-1 flex flex-wrap items-center gap-3">
+        <h2 className="font-serif text-2xl text-museum-ink">{copy.title}</h2>
+        <span className="border border-museum-line px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-museum-muted">
+          {copy.soon}
+        </span>
+      </div>
       <p className="mb-4 text-sm text-museum-muted">
         {plan.name}
         {plan.level ? ` · ${plan.level}` : ''}

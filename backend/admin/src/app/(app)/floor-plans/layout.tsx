@@ -9,7 +9,15 @@ import { indoorMapEnabled } from '@/lib/features';
 export default function FloorPlansLayout({ children }: { children: ReactNode }) {
   const { t } = useFloorPlanI18n();
 
-  if (indoorMapEnabled) return <>{children}</>;
+  if (indoorMapEnabled)
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Badge variant="warning">{t('comingSoon')}</Badge>
+        </div>
+        {children}
+      </div>
+    );
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed px-6 py-16 text-center">

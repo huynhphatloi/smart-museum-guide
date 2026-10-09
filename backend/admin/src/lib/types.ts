@@ -29,6 +29,7 @@ export interface AssignmentSummary {
   exhibitId: string;
   activeFrom: string;
   activeTo: string | null;
+  autoEnd: boolean;
   note?: string | null;
   exhibit: { id: string; code: string; defaultTitle: string; status: ExhibitStatus };
   zone?: { id: string; code: string; name: string };
@@ -40,6 +41,7 @@ export interface ZoneDetail extends Zone {
   currentReason: 'RESOLVED' | 'NO_ASSIGNMENT' | 'EXHIBIT_NOT_PUBLISHED';
   /** What stood here before, newest first. */
   history: AssignmentSummary[];
+  upcoming: AssignmentSummary[];
 }
 
 export interface Beacon {

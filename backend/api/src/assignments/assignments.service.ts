@@ -1,9 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ExhibitNotFoundException, ZoneNotFoundException } from '../common/errors/app.exception';
+import { randomUUID } from 'node:crypto';
+import {
+  ExhibitNotFoundException,
+  ExhibitNotPublishedException,
+  InvalidDateRangeException,
+  ZoneNotFoundException,
+} from '../common/errors/app.exception';
 import { PrismaService } from '../prisma/prisma.service';
 import { CurrentExhibitPlan, planCurrentExhibitChange } from './current-exhibit.planner';
 import { ScheduleConflictValidator } from './schedule-conflict.validator';
+import { normalizeSchedule, ScheduledAssignment } from './schedule.planner';
+import type { ScheduleExhibitDto } from './schedule.controller';
 
 const assignmentInclude = {
   zone: { select: { id: true, code: true, name: true } },
@@ -17,10 +25,8 @@ export type AssignmentWithRelations = Prisma.ExhibitAssignmentGetPayload<{
 /**
  * Owns the zone -> exhibit link over time.
  *
- * There is no scheduling UI any more: staff set what is currently in a room and
- * the service maintains the underlying dated assignments, so BLE and QR keep
- * resolving through the same rule and the museum keeps a record of what was
- * displayed when.
+ * Immediate and future changes share the dated assignment model. All changes
+ * lock the zone inside a transaction so simultaneous writes cannot overlap.
  */
 @Injectable()
 export class AssignmentsService {
@@ -54,62 +60,145 @@ export class AssignmentsService {
   async setCurrentExhibit(
     zoneId: string,
     exhibitId: string | null,
-    now: Date = new Date(),
+    at?: Date,
   ): Promise<{ plan: CurrentExhibitPlan; current: AssignmentWithRelations | null }> {
-    const zone = await this.prisma.zone.count({ where: { id: zoneId } });
-    if (zone === 0) throw new ZoneNotFoundException(zoneId);
-
-    if (exhibitId !== null) {
-      const exhibit = await this.prisma.exhibit.count({ where: { id: exhibitId } });
-      if (exhibit === 0) throw new ExhibitNotFoundException(exhibitId);
-    }
-
-    const existing = await this.prisma.exhibitAssignment.findMany({
-      where: { zoneId },
-      select: { id: true, exhibitId: true, activeFrom: true, activeTo: true },
-    });
-
-    const plan = planCurrentExhibitChange(existing, exhibitId, now);
-
-    if (!plan.unchanged) {
-      await this.prisma.$transaction(async (tx) => {
-        if (plan.deleteAssignmentIds.length > 0) {
-          await tx.exhibitAssignment.deleteMany({
-            where: { id: { in: plan.deleteAssignmentIds } },
-          });
-        }
-        if (plan.closeAssignmentId) {
-          await tx.exhibitAssignment.update({
-            where: { id: plan.closeAssignmentId },
-            data: { activeTo: now },
-          });
-        }
-        if (plan.create) {
-          await tx.exhibitAssignment.create({
-            data: {
-              zoneId,
-              exhibitId: plan.create.exhibitId,
-              activeFrom: plan.create.activeFrom,
-              activeTo: null,
-            },
-          });
-        }
+    return this.withZoneLock(zoneId, async (tx) => {
+      const now = at ?? new Date();
+      if (exhibitId !== null) await this.assertPublished(tx, exhibitId);
+      const existing = await tx.exhibitAssignment.findMany({ where: { zoneId } });
+      const plan = planCurrentExhibitChange(existing, exhibitId, now);
+      if (!plan.unchanged) {
+        const remaining = existing
+          .filter((row) => !plan.deleteAssignmentIds.includes(row.id))
+          .map((row) =>
+            row.id === plan.closeAssignmentId ? { ...row, activeTo: now, autoEnd: false } : row,
+          );
+        const next: ScheduledAssignment[] = [...remaining];
+        if (plan.create) next.push({ id: randomUUID(), ...plan.create });
+        await this.persistSchedule(tx, zoneId, existing, normalizeSchedule(next, now));
+      }
+      const current = await tx.exhibitAssignment.findFirst({
+        where: {
+          zoneId,
+          activeFrom: { lte: now },
+          OR: [{ activeTo: null }, { activeTo: { gt: now } }],
+        },
+        include: assignmentInclude,
+        orderBy: { activeFrom: 'desc' },
       });
+      return { plan, current };
+    });
+  }
 
-      // Safety net: the invariant "one exhibit per zone at any instant" is still
-      // checked against the database after the write, even though the UI can no
-      // longer express an overlapping period.
-      if (plan.create) {
-        await this.conflicts.assertSingleActiveAssignment(zoneId, now);
+  async scheduleForZone(zoneId: string) {
+    if (!(await this.prisma.zone.count({ where: { id: zoneId } })))
+      throw new ZoneNotFoundException(zoneId);
+    return this.historyForZone(zoneId);
+  }
+
+  async saveScheduledExhibit(zoneId: string, dto: ScheduleExhibitDto, id?: string) {
+    const activeFrom = new Date(dto.activeFrom);
+    const activeTo = dto.activeTo ? new Date(dto.activeTo) : null;
+    this.conflicts.assertValidRange(activeFrom, activeTo);
+    return this.withZoneLock(zoneId, async (tx) => {
+      const now = new Date();
+      if (activeFrom <= now)
+        throw new InvalidDateRangeException('Choose a future start time, or use Change now.');
+      await this.assertPublished(tx, dto.exhibitId);
+      const existing = await tx.exhibitAssignment.findMany({ where: { zoneId } });
+      if (id) this.assertUpcoming(existing, id, now);
+      const assignmentId = id ?? randomUUID();
+      const candidate: ScheduledAssignment = {
+        id: assignmentId,
+        exhibitId: dto.exhibitId,
+        activeFrom,
+        activeTo,
+        autoEnd: activeTo === null,
+      };
+      const next = normalizeSchedule([...existing.filter((row) => row.id !== id), candidate], now);
+      await this.persistSchedule(tx, zoneId, existing, next);
+      return tx.exhibitAssignment.findUnique({
+        where: { id: assignmentId },
+        include: assignmentInclude,
+      });
+    });
+  }
+
+  async cancelScheduledExhibit(zoneId: string, id: string) {
+    return this.withZoneLock(zoneId, async (tx) => {
+      const now = new Date();
+      const existing = await tx.exhibitAssignment.findMany({ where: { zoneId } });
+      this.assertUpcoming(existing, id, now);
+      await this.persistSchedule(
+        tx,
+        zoneId,
+        existing,
+        normalizeSchedule(
+          existing.filter((row) => row.id !== id),
+          now,
+        ),
+      );
+      return { cancelled: true };
+    });
+  }
+
+  private assertUpcoming(rows: ScheduledAssignment[], id: string, now: Date) {
+    const row = rows.find((assignment) => assignment.id === id);
+    if (!row) throw new NotFoundException('Scheduled exhibit not found in this zone.');
+    if (row.activeFrom <= now)
+      throw new InvalidDateRangeException(
+        'This period has already started. Use Change now; display history cannot be edited.',
+      );
+  }
+
+  private async assertPublished(tx: Prisma.TransactionClient, exhibitId: string) {
+    const exhibit = await tx.exhibit.findUnique({
+      where: { id: exhibitId },
+      select: { status: true },
+    });
+    if (!exhibit) throw new ExhibitNotFoundException(exhibitId);
+    if (exhibit.status !== 'PUBLISHED') throw new ExhibitNotPublishedException(exhibitId);
+  }
+
+  private withZoneLock<T>(zoneId: string, action: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return this.prisma.$transaction(async (tx) => {
+      const zones = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT id FROM zones WHERE id = ${zoneId} FOR UPDATE`;
+      if (!zones.length) throw new ZoneNotFoundException(zoneId);
+      return action(tx);
+    });
+  }
+
+  private async persistSchedule(
+    tx: Prisma.TransactionClient,
+    zoneId: string,
+    existing: ScheduledAssignment[],
+    next: ScheduledAssignment[],
+  ) {
+    const removed = existing.filter((row) => !next.some((candidate) => candidate.id === row.id));
+    if (removed.length)
+      await tx.exhibitAssignment.deleteMany({
+        where: { id: { in: removed.map((row) => row.id) }, zoneId },
+      });
+    for (const row of next) {
+      const before = existing.find((candidate) => candidate.id === row.id);
+      const data = {
+        exhibitId: row.exhibitId,
+        activeFrom: row.activeFrom,
+        activeTo: row.activeTo,
+        autoEnd: row.autoEnd,
+      };
+      if (!before) {
+        await tx.exhibitAssignment.create({ data: { id: row.id, zoneId, ...data } });
+      } else if (
+        before.exhibitId !== row.exhibitId ||
+        before.activeFrom.getTime() !== row.activeFrom.getTime() ||
+        before.activeTo?.getTime() !== row.activeTo?.getTime() ||
+        before.autoEnd !== row.autoEnd
+      ) {
+        await tx.exhibitAssignment.update({ where: { id: row.id }, data });
       }
     }
-
-    const current = await this.prisma.exhibitAssignment.findFirst({
-      where: { zoneId, activeTo: null },
-      include: assignmentInclude,
-      orderBy: { activeFrom: 'desc' },
-    });
-
-    return { plan, current };
   }
 }

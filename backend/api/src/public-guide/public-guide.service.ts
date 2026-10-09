@@ -139,7 +139,12 @@ export class PublicGuideService {
     // DRAFT/ARCHIVED and "nothing scheduled" are the same thing for a visitor:
     // there is no content to show here right now.
     if (resolution.reason !== 'RESOLVED' || !resolution.assignment) {
-      throw new NoActiveExhibitException(zone.code, at);
+      const next = await this.prisma.exhibitAssignment.findFirst({
+        where: { zoneId: zone.id, activeFrom: { gt: at } },
+        orderBy: { activeFrom: 'asc' },
+        select: { activeFrom: true },
+      });
+      throw new NoActiveExhibitException(zone.code, at, next?.activeFrom.toISOString() ?? null);
     }
 
     const assignment = resolution.assignment;
@@ -157,6 +162,7 @@ export class PublicGuideService {
       },
       exhibit,
       resolvedAt: at.toISOString(),
+      nextChangeAt: assignment.activeTo?.toISOString() ?? null,
     };
   }
 }

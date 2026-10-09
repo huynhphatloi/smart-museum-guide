@@ -24,13 +24,14 @@ const NAMESPACE_PATTERN = /^[0-9a-fA-F]{20}$/;
 const INSTANCE_PATTERN = /^[0-9a-fA-F]{12}$/;
 
 export class CreateBeaconDto {
+  @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(64)
   @Matches(IDENTIFIER_PATTERN, {
     message: 'identifier must contain only A-Z, 0-9, underscore, dash or dot.',
   })
-  identifier!: string;
+  identifier?: string;
 
   @IsString()
   @MinLength(1)

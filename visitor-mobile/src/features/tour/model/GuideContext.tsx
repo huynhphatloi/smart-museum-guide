@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import React, {
   createContext,
   useCallback,
@@ -118,6 +119,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   const [exhibit, setExhibit] = useState<ActiveExhibitResponse | null>(null);
   const [exhibitLoading, setExhibitLoading] = useState(false);
   const [exhibitError, setExhibitError] = useState<ApiError | null>(null);
+  const [exhibitReceivedAt, setExhibitReceivedAt] = useState(0);
   const [prompt, setPrompt] = useState<ZonePrompt | null>(null);
   const scannerRef = useRef<BeaconScanner | null>(null);
   const realSourceRef = useRef<RealBleSignalSource | null>(null);
@@ -191,8 +193,10 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await api.activeExhibitForBeacon(identifier, languageRef.current);
       setExhibit(result);
+      setExhibitReceivedAt(Date.now());
     } catch (error) {
       setExhibit(null);
+      setExhibitReceivedAt(Date.now());
       setExhibitError(
         error instanceof ApiError ? error : new ApiError(0, 'UNKNOWN', 'Unexpected error'),
       );
@@ -208,8 +212,10 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await api.activeExhibitForZone(zoneCode, languageRef.current);
       setExhibit(result);
+      setExhibitReceivedAt(Date.now());
     } catch (error) {
       setExhibit(null);
+      setExhibitReceivedAt(Date.now());
       setExhibitError(
         error instanceof ApiError ? error : new ApiError(0, 'UNKNOWN', 'Unexpected error'),
       );
@@ -223,6 +229,57 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     if (request?.kind === 'beacon') return loadExhibitForBeacon(request.identifier);
     if (request?.kind === 'zone') return openZone(request.code);
   }, [loadExhibitForBeacon, openZone]);
+
+  // Keep the audio player mounted during background checks and ignore a stale
+  // response if the visitor moved to another zone or switched language.
+  const refreshExhibit = useCallback(async () => {
+    const request = lastExhibitRequest.current;
+    const requestedLanguage = languageRef.current;
+    if (!request) return;
+    try {
+      const result =
+        request.kind === 'beacon'
+          ? await api.activeExhibitForBeacon(request.identifier, requestedLanguage)
+          : await api.activeExhibitForZone(request.code, requestedLanguage);
+      if (lastExhibitRequest.current !== request || languageRef.current !== requestedLanguage)
+        return;
+      setExhibit(result);
+      setExhibitError(null);
+      setExhibitReceivedAt(Date.now());
+    } catch (error) {
+      if (lastExhibitRequest.current !== request || languageRef.current !== requestedLanguage)
+        return;
+      if (error instanceof ApiError && error.code !== 'NETWORK_ERROR') {
+        setExhibit(null);
+        setExhibitError(error);
+      }
+      setExhibitReceivedAt(Date.now());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !lastExhibitRequest.current || exhibitLoading) return;
+    const next =
+      exhibit?.nextChangeAt ?? exhibit?.assignment.activeTo ?? exhibitError?.details?.nextChangeAt;
+    const resolved = exhibit?.resolvedAt ?? exhibitError?.details?.resolvedAt;
+    const delay =
+      next && resolved
+        ? Date.parse(next) - Date.parse(resolved) - (Date.now() - exhibitReceivedAt) + 150
+        : 30_000;
+    const timer = setTimeout(
+      () => {
+        if (AppState.currentState === 'active') void refreshExhibit();
+      },
+      Math.min(30_000, Math.max(1000, delay)),
+    );
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshExhibit();
+    });
+    return () => {
+      clearTimeout(timer);
+      listener.remove();
+    };
+  }, [ready, exhibit, exhibitError, exhibitLoading, exhibitReceivedAt, refreshExhibit]);
 
   // Re-fetch the current content whenever the visitor switches language.
   useEffect(() => {

@@ -28,6 +28,7 @@ export function ZonePage() {
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<ActiveExhibitResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [receivedAt, setReceivedAt] = useState(0);
 
   // Ask the museum which languages it offers, then pick the visitor's.
   useEffect(() => {
@@ -45,19 +46,27 @@ export function ZonePage() {
   }, []);
 
   const load = useCallback(
-    (signal?: AbortSignal) => {
-      setStatus('loading');
-      setError(null);
+    (signal?: AbortSignal, background = false) => {
+      if (!background) {
+        setStatus('loading');
+        setError(null);
+      }
       fetchActiveExhibitForZone(zoneCode, language, signal)
         .then((result) => {
+          if (signal?.aborted) return;
           setData(result);
+          setError(null);
+          setReceivedAt(Date.now());
           setStatus('ready');
         })
         .catch((caught: unknown) => {
+          if (signal?.aborted) return;
           if (caught instanceof DOMException && caught.name === 'AbortError') return;
           setError(
             caught instanceof ApiError ? caught : new ApiError(0, 'UNKNOWN', 'Unexpected error'),
           );
+          setData(null);
+          setReceivedAt(Date.now());
           setStatus('error');
         });
     },
@@ -71,6 +80,32 @@ export function ZonePage() {
     return () => controller.abort();
   }, [languageReady, load]);
 
+  // Refresh at the server's next switch, even when the zone is temporarily empty.
+  // Use its clock rather than assuming the visitor's device clock is correct.
+  useEffect(() => {
+    if (!languageReady || status === 'loading') return;
+    const next = data?.nextChangeAt ?? data?.assignment.activeTo ?? error?.details?.nextChangeAt;
+    const resolved = data?.resolvedAt ?? error?.details?.resolvedAt;
+    const delay =
+      next && resolved
+        ? Date.parse(next) - Date.parse(resolved) - (Date.now() - receivedAt) + 150
+        : 30_000;
+    const controller = new AbortController();
+    const timer = window.setTimeout(
+      () => load(controller.signal, true),
+      Math.min(30_000, Math.max(1000, delay)),
+    );
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load(controller.signal, true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [data, error, languageReady, load, receivedAt, status]);
+
   function handleLanguageChange(next: string) {
     setLanguage(next);
     rememberLanguage(next);
@@ -79,12 +114,24 @@ export function ZonePage() {
   const header = (
     <header className="sticky top-0 z-10 border-b border-museum-line bg-museum-bg/95 backdrop-blur">
       <div className="mx-auto flex min-h-[76px] max-w-[1440px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-14">
-        <Link to="/" className="group flex items-center gap-3 text-sm font-semibold text-museum-ink">
+        <Link
+          to="/"
+          className="group flex items-center gap-3 text-sm font-semibold text-museum-ink"
+        >
           <BrandMark size={36} />
           <span className="hidden sm:inline">{t(language, 'appName')}</span>
-          <ArrowLeft className="ml-2 opacity-50 transition-transform group-hover:-translate-x-1 sm:hidden" size={17} aria-hidden="true" />
+          <ArrowLeft
+            className="ml-2 opacity-50 transition-transform group-hover:-translate-x-1 sm:hidden"
+            size={17}
+            aria-hidden="true"
+          />
         </Link>
-        <LanguageSelector languages={languages} value={language} onChange={handleLanguageChange} label={t(language, 'language')} />
+        <LanguageSelector
+          languages={languages}
+          value={language}
+          onChange={handleLanguageChange}
+          label={t(language, 'language')}
+        />
       </div>
     </header>
   );

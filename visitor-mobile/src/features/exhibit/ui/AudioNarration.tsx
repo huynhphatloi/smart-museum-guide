@@ -1,8 +1,10 @@
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../../../shared/theme';
+import { NarrationSession, NarrationState } from '../model/narration-player';
+import { narrationPlayer } from '../model/shared-narration-player';
 
 interface Props {
   url: string | null;
@@ -12,62 +14,34 @@ interface Props {
 }
 
 export function AudioNarration({ url, playLabel, emptyLabel, autoPlay = false }: Props) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const unload = useCallback(async () => {
-    if (soundRef.current) {
-      await soundRef.current.unloadAsync().catch(() => undefined);
-      soundRef.current = null;
-    }
-    setPlaying(false);
-  }, []);
+  const focused = useIsFocused();
+  const sessionRef = useRef<NarrationSession | null>(null);
+  const [state, setState] = useState<NarrationState>({
+    playing: false,
+    loading: false,
+    error: false,
+  });
+  const { playing, loading, error } = state;
 
   useEffect(() => {
-    void unload();
-    setError(null);
+    if (!focused || !url) return;
+    let active = true;
+    const session = narrationPlayer.open(url, (next) => {
+      if (active) setState(next);
+    });
+    sessionRef.current = session;
     return () => {
-      void unload();
+      active = false;
+      sessionRef.current = null;
+      void session.close();
     };
-  }, [url, unload]);
-
-  const toggle = useCallback(async () => {
-    if (!url) return;
-
-    try {
-      if (soundRef.current) {
-        if (playing) {
-          await soundRef.current.pauseAsync();
-          setPlaying(false);
-        } else {
-          await soundRef.current.playAsync();
-          setPlaying(true);
-        }
-        return;
-      }
-
-      setLoading(true);
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
-      const { sound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-        if (!status.isLoaded) return;
-        if (status.didJustFinish) setPlaying(false);
-      });
-    } catch {
-      setError(emptyLabel);
-    } finally {
-      setLoading(false);
-    }
-  }, [url, playing, emptyLabel]);
+  }, [focused, url]);
 
   useEffect(() => {
-    if (autoPlay && url) void toggle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, url]);
+    if (focused && autoPlay && url) void sessionRef.current?.play();
+  }, [focused, autoPlay, url]);
+
+  const toggle = useCallback(() => sessionRef.current?.toggle(), []);
 
   if (!url) return <Text style={styles.empty}>{emptyLabel}</Text>;
 
@@ -76,6 +50,8 @@ export function AudioNarration({ url, playLabel, emptyLabel, autoPlay = false }:
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={playLabel}
+        accessibilityState={{ disabled: loading || !focused, busy: loading }}
+        disabled={loading || !focused}
         onPress={() => void toggle()}
         style={({ pressed }) => [styles.player, pressed && styles.playerPressed]}
       >
@@ -84,7 +60,16 @@ export function AudioNarration({ url, playLabel, emptyLabel, autoPlay = false }:
             <ActivityIndicator size="small" color={theme.colors.accentDark} />
           ) : (
             <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" accessibilityElementsHidden>
-              {playing ? <Path d="M8 5v14M16 5v14" stroke={theme.colors.accentDark} strokeWidth={3} strokeLinecap="round" /> : <Path d="m8 5 11 7-11 7V5Z" fill={theme.colors.accentDark} />}
+              {playing ? (
+                <Path
+                  d="M8 5v14M16 5v14"
+                  stroke={theme.colors.accentDark}
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                />
+              ) : (
+                <Path d="m8 5 11 7-11 7V5Z" fill={theme.colors.accentDark} />
+              )}
             </Svg>
           )}
         </View>
@@ -98,7 +83,7 @@ export function AudioNarration({ url, playLabel, emptyLabel, autoPlay = false }:
           ))}
         </View>
       </Pressable>
-      {error ? <Text style={styles.empty}>{error}</Text> : null}
+      {error ? <Text style={styles.empty}>{emptyLabel}</Text> : null}
     </View>
   );
 }
