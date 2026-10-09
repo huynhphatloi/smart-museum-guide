@@ -166,7 +166,7 @@ if service._tunnel is not None:
 
 tunnel_log = service.work_dir / "cloudflared-recovery.log"
 with tunnel_log.open("w") as output:
-    service._tunnel = subprocess.Popen([_cloudflared(service.work_dir / "bin"), "tunnel", "--no-autoupdate", "--protocol", "http2", "--url", f"http://127.0.0.1:{service.settings.port}"], stdout=output, stderr=subprocess.STDOUT, text=True)
+    service._tunnel = subprocess.Popen([_cloudflared(service.work_dir / "bin"), "tunnel", "--no-autoupdate", "--protocol", "http2", "--url", f"http://127.0.0.1:{service.settings.port}"], stdout=output, stderr=subprocess.STDOUT, text=True, start_new_session=True)
 
 deadline = time.monotonic() + 90
 while time.monotonic() < deadline:

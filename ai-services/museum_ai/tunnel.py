@@ -28,6 +28,9 @@ def start_quick_tunnel(port: int, bin_dir: Path, timeout: float = 90.0) -> Tuple
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        # Colab interrupts the notebook's process group when a log cell stops.
+        # Keep the tunnel alive while the background worker finishes its jobs.
+        start_new_session=True,
     )
 
     found: list = []

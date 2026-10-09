@@ -94,7 +94,8 @@ class MockTranslator:
 
 class TranslateGemmaTranslator:
     #: CMS codes that TranslateGemma's chat template knows under another name.
-    CODES = {"zh": "zh-CN", "zh-hant": "zh-TW", "fil": "fil-PH"}
+    # The model template accepts zh-Hans, but does not contain zh-CN.
+    CODES = {"zh": "zh-Hans", "zh-hant": "zh-TW", "fil": "fil-PH"}
     languages: FrozenSet[str] = frozenset(LANGUAGE_NAMES)
 
     def __init__(self, model_id: str, quantization: str = "auto") -> None:
