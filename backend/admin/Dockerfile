@@ -9,7 +9,8 @@ COPY package.json package-lock.json ./
 COPY api/package.json ./api/
 COPY admin/package.json ./admin/
 
-RUN npm ci --ignore-scripts
+# Audit reporting is run separately from producing this deterministic image.
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
 FROM deps AS build
 COPY admin ./admin
