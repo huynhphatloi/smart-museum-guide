@@ -200,7 +200,7 @@ One anonymous device opening the same exhibit through the same channel within 30
 
 `GET /api/admin/analytics` requires staff authentication. It accepts inclusive `from`/`to` calendar dates (maximum 366 days), an optional `source=QR|BLE|MANUAL`, and a history `page`. It returns totals, distinct devices, the top 20 exhibits, hourly and daily counts, peak hours and paginated dated history. Historical titles survive exhibit deletion. Counts begin after deploying the migration and updated clients; there is no reconstruction of past access. Delivery is best effort with three idempotent attempts and requires connectivity; this is content engagement analytics, not a physical occupancy counter.
 
-Focused verification with a dedicated local test database:
+From `backend/`, run focused verification with a dedicated local test database:
 
 ```bash
 ANALYTICS_TEST_DATABASE_URL=postgresql://USER@localhost/smart_museum_analytics_codex_TEST npm --workspace api test -- --runInBand analytics

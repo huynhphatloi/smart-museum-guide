@@ -33,8 +33,8 @@ export class PublicGuideController {
   }
 
   /**
-   * Room plans for the visitor map. Positioning itself runs on the phone - the
-   * server never learns where anyone is.
+   * Room plans for the visitor map. Continuous positioning stays on the phone;
+   * explicit exhibit access events are recorded separately by analytics.
    */
   @Get('public/floor-plans')
   floorPlans() {

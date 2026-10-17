@@ -269,7 +269,7 @@ export function VisitAnalyticsPanel() {
               </TableHeader>
               <TableBody>
                 {data.exhibits.map((row) => (
-                  <TableRow key={row.code}>
+                  <TableRow key={`${row.exhibitId ?? 'deleted'}:${row.code}`}>
                     <TableCell>
                       {row.exhibitId ? (
                         <Link
