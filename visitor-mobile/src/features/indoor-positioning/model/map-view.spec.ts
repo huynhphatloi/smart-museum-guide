@@ -1,4 +1,4 @@
-import { mapRotation, rotatedSize, toRoomPoint } from './map-view';
+import { mapRotation, rotatedSize, toRoomPoint, viewOffset } from './map-view';
 
 describe('rotated map interaction on a rectangular room', () => {
   const w = 11.84;
@@ -27,5 +27,13 @@ describe('rotated map interaction on a rectangular room', () => {
   it('ignores malformed saved preferences', () => {
     expect(mapRotation(Number.NaN)).toBe(0);
     expect(mapRotation(45)).toBe(0);
+  });
+  it.each([
+    [0, 10, 30],
+    [90, 20, 20],
+    [180, 10, 10],
+    [270, 0, 20],
+  ] as const)('keeps a below-marker label below on screen at %d degrees', (rotation, x, y) => {
+    expect(viewOffset(10, 20, 0, 10, rotation)).toEqual({ x, y });
   });
 });

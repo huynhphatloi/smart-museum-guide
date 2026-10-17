@@ -4,6 +4,26 @@ export interface MapPoint {
   y: number;
 }
 
+/** Offset a label in screen directions while its anchor stays in room coordinates. */
+export function viewOffset(
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+  rotation: MapRotation,
+): MapPoint {
+  switch (rotation) {
+    case 90:
+      return { x: x + dy, y: y - dx };
+    case 180:
+      return { x: x - dx, y: y - dy };
+    case 270:
+      return { x: x - dy, y: y + dx };
+    default:
+      return { x: x + dx, y: y + dy };
+  }
+}
+
 export function mapRotation(value: number): MapRotation {
   return value === 90 || value === 180 || value === 270 ? value : 0;
 }

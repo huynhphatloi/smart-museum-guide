@@ -73,6 +73,15 @@ export function PlanCanvas({
           : undefined;
   const upright = (x: number, y: number) =>
     rotation ? `rotate(${-rotation} ${x} ${y})` : undefined;
+  // Keep label offsets vertical on screen, rather than rotating them into other labels.
+  const labelAt = (x: number, y: number, offset: number) =>
+    rotation === 90
+      ? { x: x + offset, y }
+      : rotation === 180
+        ? { x, y: y - offset }
+        : rotation === 270
+          ? { x: x - offset, y }
+          : { x, y: y + offset };
   const unit = Math.max(w, h) / 60;
 
   const handleClick = (event: MouseEvent<SVGSVGElement>) => {
@@ -247,9 +256,12 @@ export function PlanCanvas({
                   />
                 )}
                 <text
-                  x={point.x}
-                  y={point.y - unit * 1.1}
-                  transform={upright(point.x, point.y - unit * 1.1)}
+                  x={labelAt(point.x, point.y, -unit * 1.1).x}
+                  y={labelAt(point.x, point.y, -unit * 1.1).y}
+                  transform={upright(
+                    labelAt(point.x, point.y, -unit * 1.1).x,
+                    labelAt(point.x, point.y, -unit * 1.1).y,
+                  )}
                   fontSize={unit * 0.8}
                   textAnchor="middle"
                   fill="#70695F"
@@ -275,9 +287,12 @@ export function PlanCanvas({
                     strokeWidth={unit * 0.25}
                   />
                   <text
-                    x={beacon.mapX}
-                    y={beacon.mapY + unit * 2}
-                    transform={upright(beacon.mapX, beacon.mapY + unit * 2)}
+                    x={labelAt(beacon.mapX, beacon.mapY, unit * 2).x}
+                    y={labelAt(beacon.mapX, beacon.mapY, unit * 2).y}
+                    transform={upright(
+                      labelAt(beacon.mapX, beacon.mapY, unit * 2).x,
+                      labelAt(beacon.mapX, beacon.mapY, unit * 2).y,
+                    )}
                     fontSize={unit * 0.85}
                     textAnchor="middle"
                     fill="#A77C42"

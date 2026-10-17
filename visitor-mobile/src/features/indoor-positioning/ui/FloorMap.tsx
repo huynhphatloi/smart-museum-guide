@@ -22,7 +22,7 @@ import { env } from '../../../shared/config/env';
 import { theme } from '../../../shared/theme';
 import { centroid } from '../model/zone-geometry';
 import { pt } from '../i18n';
-import { mapTransform, rotatedSize, toRoomPoint } from '../model/map-view';
+import { mapTransform, rotatedSize, toRoomPoint, viewOffset } from '../model/map-view';
 import { useMapRotation } from '../model/use-map-rotation';
 import { FloorPlan, MapShape, PositionEstimate, ReferencePoint } from '../model/types';
 
@@ -80,6 +80,21 @@ export function FloorMap(props: FloorMapProps) {
   const px = (metres: number) => PAD + metres * scale;
   const upright = (x: number, y: number) =>
     rotation ? `rotate(${-rotation} ${x} ${y})` : undefined;
+  const beaconLabel = (x: number, y: number) => {
+    const screenX =
+      rotation === 90
+        ? roomHeight - px(y)
+        : rotation === 180
+          ? roomWidth - px(x)
+          : rotation === 270
+            ? px(y)
+            : px(x);
+    const left = screenX > width / 2;
+    return {
+      ...viewOffset(px(x), px(y), left ? -11 : 11, 3, rotation),
+      anchor: left ? ('end' as const) : ('start' as const),
+    };
+  };
 
   const toMetres = (event: GestureResponderEvent) => {
     const point = toRoomPoint(
@@ -236,11 +251,13 @@ export function FloorMap(props: FloorMapProps) {
                 const confirmed = zone.code === props.confirmedZone;
                 const candidate = !confirmed && zone.code === props.candidateZone;
                 const centre = centroid(zone.mapShape);
-                const labelY =
-                  px(centre.y) +
-                  (zone.mapShape.type === 'circle'
-                    ? Math.min(zone.mapShape.r * scale * 0.5, 26)
-                    : 4);
+                const label = viewOffset(
+                  px(centre.x),
+                  px(centre.y),
+                  0,
+                  zone.mapShape.type === 'circle' ? Math.min(zone.mapShape.r * scale * 0.5, 26) : 4,
+                  rotation,
+                );
                 return (
                   <G key={zone.code}>
                     <G clipPath="url(#room)">
@@ -258,10 +275,10 @@ export function FloorMap(props: FloorMapProps) {
                     {/* In calibration the survey point labels need the room. */}
                     {props.pointBadges ? null : (
                       <SvgText
-                        x={px(centre.x)}
+                        x={label.x}
                         // Below the centre: the zone-level marker sits on the centre itself.
-                        y={labelY}
-                        transform={upright(px(centre.x), labelY)}
+                        y={label.y}
+                        transform={upright(label.x, label.y)}
                         fontSize={11}
                         fontWeight={confirmed ? '700' : '500'}
                         fill={confirmed ? theme.colors.accentDark : theme.colors.muted}
@@ -310,9 +327,12 @@ export function FloorMap(props: FloorMapProps) {
                         />
                         {props.pointBadges ? (
                           <SvgText
-                            x={px(point.x)}
-                            y={px(point.y) - 11}
-                            transform={upright(px(point.x), px(point.y) - 11)}
+                            x={viewOffset(px(point.x), px(point.y), 0, -11, rotation).x}
+                            y={viewOffset(px(point.x), px(point.y), 0, -11, rotation).y}
+                            transform={upright(
+                              viewOffset(px(point.x), px(point.y), 0, -11, rotation).x,
+                              viewOffset(px(point.x), px(point.y), 0, -11, rotation).y,
+                            )}
                             fontSize={9}
                             fill={theme.colors.muted}
                             textAnchor="middle"
@@ -343,15 +363,15 @@ export function FloorMap(props: FloorMapProps) {
                     {props.showAlgorithm ? (
                       <SvgText
                         // Beside the diamond, on the same line - clear of the reference grid.
-                        x={px(beacon.mapX) + (beacon.mapX > plan.widthMeters / 2 ? -11 : 11)}
-                        y={px(beacon.mapY) + 3}
+                        x={beaconLabel(beacon.mapX, beacon.mapY).x}
+                        y={beaconLabel(beacon.mapX, beacon.mapY).y}
                         transform={upright(
-                          px(beacon.mapX) + (beacon.mapX > plan.widthMeters / 2 ? -11 : 11),
-                          px(beacon.mapY) + 3,
+                          beaconLabel(beacon.mapX, beacon.mapY).x,
+                          beaconLabel(beacon.mapX, beacon.mapY).y,
                         )}
                         fontSize={9}
                         fill={theme.colors.brass}
-                        textAnchor={beacon.mapX > plan.widthMeters / 2 ? 'end' : 'start'}
+                        textAnchor={beaconLabel(beacon.mapX, beacon.mapY).anchor}
                       >
                         {beacon.identifier}
                       </SvgText>
