@@ -296,6 +296,7 @@ export function CalibrationScreen() {
       <View style={styles.map}>
         <FloorMap
           plan={plan}
+          language={language}
           referencePoints={points}
           pointBadges={badges}
           selectedPointId={selectedId}

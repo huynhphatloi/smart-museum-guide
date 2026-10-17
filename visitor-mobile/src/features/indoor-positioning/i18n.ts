@@ -5,6 +5,11 @@
  */
 const en = {
   mapTab: 'Map',
+  rotateMap: 'Rotate map view',
+  rotateLeft: 'Rotate left',
+  rotateRight: 'Rotate right',
+  resetView: 'Original view',
+  viewAngle: 'Your view · {angle}°',
   mapEyebrow: 'Indoor positioning',
   comingSoon: 'Coming soon',
   comingSoonTitle: 'Museum map',
@@ -87,6 +92,11 @@ type Key = keyof typeof en;
 
 const vi: Record<Key, string> = {
   mapTab: 'Bản đồ',
+  rotateMap: 'Xoay góc nhìn bản đồ',
+  rotateLeft: 'Xoay trái',
+  rotateRight: 'Xoay phải',
+  resetView: 'Hướng gốc',
+  viewAngle: 'Góc nhìn của bạn · {angle}°',
   mapEyebrow: 'Định vị trong nhà',
   comingSoon: 'Sắp ra mắt',
   comingSoonTitle: 'Bản đồ bảo tàng',

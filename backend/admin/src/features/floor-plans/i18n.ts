@@ -13,8 +13,14 @@ const en = {
   comingSoonTitle: 'Indoor maps are coming soon',
   comingSoonBody:
     'Floor plans and the visitor map are still being tested on site, so they are turned off for now. Zones, beacons and exhibits work without them.',
-  comingSoonHint: 'To try the experimental editor, set NEXT_PUBLIC_INDOOR_MAP=true and rebuild the Admin panel.',
+  comingSoonHint:
+    'To try the experimental editor, set NEXT_PUBLIC_INDOOR_MAP=true and rebuild the Admin panel.',
   floorPlans: 'Floor plans',
+  rotateMap: 'Rotate map view',
+  rotateLeft: 'Rotate left',
+  rotateRight: 'Rotate right',
+  resetView: 'Original view',
+  viewAngle: 'Your view · {angle}°',
   floorPlansDescription:
     'Rooms drawn to scale in metres. Visitors see them as the map; indoor positioning works in their coordinates.',
   newFloorPlan: 'New floor plan',
@@ -123,8 +129,14 @@ const vi: Record<Key, string> = {
   comingSoonTitle: 'Bản đồ trong nhà sắp ra mắt',
   comingSoonBody:
     'Mặt bằng và bản đồ cho khách đang được thử nghiệm tại chỗ nên tạm thời được tắt. Khu vực, beacon và hiện vật vẫn hoạt động bình thường.',
-  comingSoonHint: 'Để dùng thử trình chỉnh sửa, đặt NEXT_PUBLIC_INDOOR_MAP=true rồi build lại Admin.',
+  comingSoonHint:
+    'Để dùng thử trình chỉnh sửa, đặt NEXT_PUBLIC_INDOOR_MAP=true rồi build lại Admin.',
   floorPlans: 'Mặt bằng',
+  rotateMap: 'Xoay góc nhìn bản đồ',
+  rotateLeft: 'Xoay trái',
+  rotateRight: 'Xoay phải',
+  resetView: 'Hướng gốc',
+  viewAngle: 'Góc nhìn của bạn · {angle}°',
   floorPlansDescription:
     'Các phòng vẽ theo tỉ lệ mét. Khách thấy chúng trên bản đồ; định vị trong nhà tính toạ độ theo đó.',
   newFloorPlan: 'Mặt bằng mới',

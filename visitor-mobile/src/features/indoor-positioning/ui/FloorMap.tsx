@@ -1,5 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { GestureResponderEvent, LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import {
+  GestureResponderEvent,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Svg, {
   Circle,
   ClipPath,
@@ -14,10 +21,14 @@ import Svg, {
 import { env } from '../../../shared/config/env';
 import { theme } from '../../../shared/theme';
 import { centroid } from '../model/zone-geometry';
+import { pt } from '../i18n';
+import { mapTransform, rotatedSize, toRoomPoint } from '../model/map-view';
+import { useMapRotation } from '../model/use-map-rotation';
 import { FloorPlan, MapShape, PositionEstimate, ReferencePoint } from '../model/types';
 
 export interface FloorMapProps {
   plan: FloorPlan;
+  language?: string;
   /** Fingerprint position (the smoothed marker). */
   estimate?: PositionEstimate | null;
   /** Zone-level stand-in marker when there is no fingerprint position. */
@@ -58,15 +69,30 @@ function resolveMediaUrl(url: string): string {
 export function FloorMap(props: FloorMapProps) {
   const { plan } = props;
   const [width, setWidth] = useState(0);
+  const { rotation, rotate } = useMapRotation(plan.id);
+  const language = props.language ?? 'vi';
+  const viewSize = rotatedSize(plan.widthMeters, plan.heightMeters, rotation);
 
-  const scale = width > 0 ? (width - PAD * 2) / plan.widthMeters : 0;
-  const height = plan.heightMeters * scale + PAD * 2;
+  const scale = width > PAD * 2 ? (width - PAD * 2) / viewSize.width : 0;
+  const height = viewSize.height * scale + PAD * 2;
+  const roomWidth = plan.widthMeters * scale + PAD * 2;
+  const roomHeight = plan.heightMeters * scale + PAD * 2;
   const px = (metres: number) => PAD + metres * scale;
+  const upright = (x: number, y: number) =>
+    rotation ? `rotate(${-rotation} ${x} ${y})` : undefined;
 
-  const toMetres = (event: GestureResponderEvent) => ({
-    x: Math.min(plan.widthMeters, Math.max(0, (event.nativeEvent.locationX - PAD) / scale)),
-    y: Math.min(plan.heightMeters, Math.max(0, (event.nativeEvent.locationY - PAD) / scale)),
-  });
+  const toMetres = (event: GestureResponderEvent) => {
+    const point = toRoomPoint(
+      { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY },
+      roomWidth,
+      roomHeight,
+      rotation,
+    );
+    return {
+      x: Math.min(plan.widthMeters, Math.max(0, (point.x - PAD) / scale)),
+      y: Math.min(plan.heightMeters, Math.max(0, (point.y - PAD) / scale)),
+    };
+  };
 
   const handleTouch = (event: GestureResponderEvent, moving: boolean) => {
     if (scale <= 0) return;
@@ -119,270 +145,329 @@ export function FloorMap(props: FloorMapProps) {
     );
 
   return (
-    <View
-      style={styles.frame}
-      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
-      onStartShouldSetResponder={() => interactive}
-      onMoveShouldSetResponder={() => interactive && Boolean(props.draggable)}
-      onResponderTerminationRequest={() => false}
-      onResponderGrant={(event) => {
-        props.onDragStateChange?.(true);
-        handleTouch(event, false);
-      }}
-      onResponderMove={(event) => handleTouch(event, true)}
-      onResponderRelease={() => props.onDragStateChange?.(false)}
-      onResponderTerminate={() => props.onDragStateChange?.(false)}
-    >
-      {scale > 0 ? (
-        <Svg width={width} height={height}>
-          <Rect
-            x={PAD}
-            y={PAD}
-            width={plan.widthMeters * scale}
-            height={plan.heightMeters * scale}
-            fill={theme.colors.paper}
-          />
-          {plan.imageUrl ? (
-            <SvgImage
-              x={PAD}
-              y={PAD}
-              width={plan.widthMeters * scale}
-              height={plan.heightMeters * scale}
-              href={{ uri: resolveMediaUrl(plan.imageUrl) }}
-              preserveAspectRatio="none"
-              opacity={0.85}
-            />
-          ) : null}
-
-          {gridLines.map((line) => (
-            <Line
-              key={line.key}
-              x1={px(line.x1)}
-              y1={px(line.y1)}
-              x2={px(line.x2)}
-              y2={px(line.y2)}
-              stroke={theme.colors.line}
-              strokeWidth={0.6}
-              strokeDasharray="2 4"
-            />
-          ))}
-
-          <Defs>
-            <ClipPath id="room">
+    <View>
+      <View style={styles.rotationTools} accessibilityLabel={pt(language, 'rotateMap')}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => rotate(rotation - 90)}
+          style={styles.rotationButton}
+        >
+          <Text style={styles.rotationText}>{pt(language, 'rotateLeft')}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => rotate(rotation + 90)}
+          style={styles.rotationButton}
+        >
+          <Text style={styles.rotationText}>{pt(language, 'rotateRight')}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: rotation === 0 }}
+          disabled={rotation === 0}
+          onPress={() => rotate(0)}
+          style={[styles.rotationButton, rotation === 0 && styles.rotationDisabled]}
+        >
+          <Text style={styles.rotationText}>{pt(language, 'resetView')}</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.rotationCaption}>{pt(language, 'viewAngle', { angle: rotation })}</Text>
+      <View
+        style={styles.frame}
+        onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+        onStartShouldSetResponder={() => interactive}
+        onMoveShouldSetResponder={() => interactive && Boolean(props.draggable)}
+        onResponderTerminationRequest={() => false}
+        onResponderGrant={(event) => {
+          props.onDragStateChange?.(true);
+          handleTouch(event, false);
+        }}
+        onResponderMove={(event) => handleTouch(event, true)}
+        onResponderRelease={() => props.onDragStateChange?.(false)}
+        onResponderTerminate={() => props.onDragStateChange?.(false)}
+      >
+        {scale > 0 ? (
+          <Svg width={width} height={height}>
+            <G transform={mapTransform(roomWidth, roomHeight, rotation)}>
               <Rect
                 x={PAD}
                 y={PAD}
                 width={plan.widthMeters * scale}
                 height={plan.heightMeters * scale}
+                fill={theme.colors.paper}
               />
-            </ClipPath>
-          </Defs>
-          {plan.zones.map((zone) => {
-            if (!zone.mapShape) return null;
-            const confirmed = zone.code === props.confirmedZone;
-            const candidate = !confirmed && zone.code === props.candidateZone;
-            const centre = centroid(zone.mapShape);
-            return (
-              <G key={zone.code}>
-                <G clipPath="url(#room)">
-                  {renderShape(
-                    zone.mapShape,
-                    confirmed ? 'rgba(140,57,47,0.24)' : 'rgba(167,124,66,0.10)',
-                    confirmed
-                      ? theme.colors.accent
-                      : candidate
-                        ? theme.colors.brass
-                        : theme.colors.line,
-                    candidate,
-                  )}
-                </G>
-                {/* In calibration the survey point labels need the room. */}
-                {props.pointBadges ? null : (
-                  <SvgText
-                    x={px(centre.x)}
-                    // Below the centre: the zone-level marker sits on the centre itself.
-                    y={
-                      px(centre.y) +
-                      (zone.mapShape.type === 'circle'
-                        ? Math.min(zone.mapShape.r * scale * 0.5, 26)
-                        : 4)
-                    }
-                    fontSize={11}
-                    fontWeight={confirmed ? '700' : '500'}
-                    fill={confirmed ? theme.colors.accentDark : theme.colors.muted}
-                    textAnchor="middle"
-                  >
-                    {zone.name}
-                  </SvgText>
-                )}
-              </G>
-            );
-          })}
+              {plan.imageUrl ? (
+                <SvgImage
+                  x={PAD}
+                  y={PAD}
+                  width={plan.widthMeters * scale}
+                  height={plan.heightMeters * scale}
+                  href={{ uri: resolveMediaUrl(plan.imageUrl) }}
+                  preserveAspectRatio="none"
+                  opacity={0.85}
+                />
+              ) : null}
 
-          <Rect
-            x={PAD}
-            y={PAD}
-            width={plan.widthMeters * scale}
-            height={plan.heightMeters * scale}
-            fill="none"
-            stroke={theme.colors.ink}
-            strokeWidth={2}
-          />
+              {gridLines.map((line) => (
+                <Line
+                  key={line.key}
+                  x1={px(line.x1)}
+                  y1={px(line.y1)}
+                  x2={px(line.x2)}
+                  y2={px(line.y2)}
+                  stroke={theme.colors.line}
+                  strokeWidth={0.6}
+                  strokeDasharray="2 4"
+                />
+              ))}
 
-          {(props.showAlgorithm || props.pointBadges) && props.referencePoints
-            ? props.referencePoints.map((point) => {
-                const count = props.pointBadges?.[point.id];
-                const selected = point.id === props.selectedPointId;
-                const neighbour = props.showAlgorithm && neighbourIds.has(point.id);
-                const recorded = count !== undefined && count > 0;
+              <Defs>
+                <ClipPath id="room">
+                  <Rect
+                    x={PAD}
+                    y={PAD}
+                    width={plan.widthMeters * scale}
+                    height={plan.heightMeters * scale}
+                  />
+                </ClipPath>
+              </Defs>
+              {plan.zones.map((zone) => {
+                if (!zone.mapShape) return null;
+                const confirmed = zone.code === props.confirmedZone;
+                const candidate = !confirmed && zone.code === props.candidateZone;
+                const centre = centroid(zone.mapShape);
+                const labelY =
+                  px(centre.y) +
+                  (zone.mapShape.type === 'circle'
+                    ? Math.min(zone.mapShape.r * scale * 0.5, 26)
+                    : 4);
                 return (
-                  <G key={point.id}>
-                    <Circle
-                      cx={px(point.x)}
-                      cy={px(point.y)}
-                      r={selected ? 9 : props.pointBadges ? 7 : 3}
-                      fill={
-                        neighbour
+                  <G key={zone.code}>
+                    <G clipPath="url(#room)">
+                      {renderShape(
+                        zone.mapShape,
+                        confirmed ? 'rgba(140,57,47,0.24)' : 'rgba(167,124,66,0.10)',
+                        confirmed
                           ? theme.colors.accent
-                          : recorded
-                            ? theme.colors.success
-                            : props.pointBadges
-                              ? theme.colors.white
-                              : theme.colors.faint
-                      }
-                      stroke={selected ? theme.colors.accentDark : theme.colors.faint}
-                      strokeWidth={selected ? 2.5 : 1}
-                    />
-                    {props.pointBadges ? (
+                          : candidate
+                            ? theme.colors.brass
+                            : theme.colors.line,
+                        candidate,
+                      )}
+                    </G>
+                    {/* In calibration the survey point labels need the room. */}
+                    {props.pointBadges ? null : (
                       <SvgText
-                        x={px(point.x)}
-                        y={px(point.y) - 11}
-                        fontSize={9}
-                        fill={theme.colors.muted}
+                        x={px(centre.x)}
+                        // Below the centre: the zone-level marker sits on the centre itself.
+                        y={labelY}
+                        transform={upright(px(centre.x), labelY)}
+                        fontSize={11}
+                        fontWeight={confirmed ? '700' : '500'}
+                        fill={confirmed ? theme.colors.accentDark : theme.colors.muted}
                         textAnchor="middle"
                       >
-                        {recorded ? `${point.label}·${count}` : point.label}
+                        {zone.name}
+                      </SvgText>
+                    )}
+                  </G>
+                );
+              })}
+
+              <Rect
+                x={PAD}
+                y={PAD}
+                width={plan.widthMeters * scale}
+                height={plan.heightMeters * scale}
+                fill="none"
+                stroke={theme.colors.ink}
+                strokeWidth={2}
+              />
+
+              {(props.showAlgorithm || props.pointBadges) && props.referencePoints
+                ? props.referencePoints.map((point) => {
+                    const count = props.pointBadges?.[point.id];
+                    const selected = point.id === props.selectedPointId;
+                    const neighbour = props.showAlgorithm && neighbourIds.has(point.id);
+                    const recorded = count !== undefined && count > 0;
+                    return (
+                      <G key={point.id}>
+                        <Circle
+                          cx={px(point.x)}
+                          cy={px(point.y)}
+                          r={selected ? 9 : props.pointBadges ? 7 : 3}
+                          fill={
+                            neighbour
+                              ? theme.colors.accent
+                              : recorded
+                                ? theme.colors.success
+                                : props.pointBadges
+                                  ? theme.colors.white
+                                  : theme.colors.faint
+                          }
+                          stroke={selected ? theme.colors.accentDark : theme.colors.faint}
+                          strokeWidth={selected ? 2.5 : 1}
+                        />
+                        {props.pointBadges ? (
+                          <SvgText
+                            x={px(point.x)}
+                            y={px(point.y) - 11}
+                            transform={upright(px(point.x), px(point.y) - 11)}
+                            fontSize={9}
+                            fill={theme.colors.muted}
+                            textAnchor="middle"
+                          >
+                            {recorded ? `${point.label}·${count}` : point.label}
+                          </SvgText>
+                        ) : null}
+                      </G>
+                    );
+                  })
+                : null}
+
+              {plan.beacons.map((beacon) =>
+                beacon.mapX === null || beacon.mapY === null ? null : (
+                  <G key={beacon.identifier}>
+                    <Polygon
+                      points={[
+                        `${px(beacon.mapX)},${px(beacon.mapY) - 7}`,
+                        `${px(beacon.mapX) + 7},${px(beacon.mapY)}`,
+                        `${px(beacon.mapX)},${px(beacon.mapY) + 7}`,
+                        `${px(beacon.mapX) - 7},${px(beacon.mapY)}`,
+                      ].join(' ')}
+                      fill={theme.colors.brass}
+                      stroke={theme.colors.white}
+                      strokeWidth={1.5}
+                    />
+                    {/* Visitors need the zones, not hardware names - labels only when explaining. */}
+                    {props.showAlgorithm ? (
+                      <SvgText
+                        // Beside the diamond, on the same line - clear of the reference grid.
+                        x={px(beacon.mapX) + (beacon.mapX > plan.widthMeters / 2 ? -11 : 11)}
+                        y={px(beacon.mapY) + 3}
+                        transform={upright(
+                          px(beacon.mapX) + (beacon.mapX > plan.widthMeters / 2 ? -11 : 11),
+                          px(beacon.mapY) + 3,
+                        )}
+                        fontSize={9}
+                        fill={theme.colors.brass}
+                        textAnchor={beacon.mapX > plan.widthMeters / 2 ? 'end' : 'start'}
+                      >
+                        {beacon.identifier}
                       </SvgText>
                     ) : null}
                   </G>
-                );
-              })
-            : null}
+                ),
+              )}
 
-          {plan.beacons.map((beacon) =>
-            beacon.mapX === null || beacon.mapY === null ? null : (
-              <G key={beacon.identifier}>
-                <Polygon
-                  points={[
-                    `${px(beacon.mapX)},${px(beacon.mapY) - 7}`,
-                    `${px(beacon.mapX) + 7},${px(beacon.mapY)}`,
-                    `${px(beacon.mapX)},${px(beacon.mapY) + 7}`,
-                    `${px(beacon.mapX) - 7},${px(beacon.mapY)}`,
-                  ].join(' ')}
-                  fill={theme.colors.brass}
-                  stroke={theme.colors.white}
-                  strokeWidth={1.5}
-                />
-                {/* Visitors need the zones, not hardware names - labels only when explaining. */}
-                {props.showAlgorithm ? (
-                  <SvgText
-                    // Beside the diamond, on the same line - clear of the reference grid.
-                    x={px(beacon.mapX) + (beacon.mapX > plan.widthMeters / 2 ? -11 : 11)}
-                    y={px(beacon.mapY) + 3}
-                    fontSize={9}
-                    fill={theme.colors.brass}
-                    textAnchor={beacon.mapX > plan.widthMeters / 2 ? 'end' : 'start'}
-                  >
-                    {beacon.identifier}
-                  </SvgText>
-                ) : null}
-              </G>
-            ),
-          )}
+              {props.showAlgorithm && marker
+                ? marker.neighbours.map((neighbour) => (
+                    <G key={`n-${neighbour.pointId}`}>
+                      <Line
+                        x1={px(marker.rawX)}
+                        y1={px(marker.rawY)}
+                        x2={px(neighbour.x)}
+                        y2={px(neighbour.y)}
+                        stroke={theme.colors.accent}
+                        strokeOpacity={0.7}
+                        strokeWidth={1 + neighbour.weight * 5}
+                      />
+                      <SvgText
+                        x={px(neighbour.x) + 6}
+                        y={px(neighbour.y) - 6}
+                        fontSize={9}
+                        fontWeight="700"
+                        fill={theme.colors.accentDark}
+                      >
+                        {`${neighbour.label} ${neighbour.weight.toFixed(2)}`}
+                      </SvgText>
+                    </G>
+                  ))
+                : null}
 
-          {props.showAlgorithm && marker
-            ? marker.neighbours.map((neighbour) => (
-                <G key={`n-${neighbour.pointId}`}>
-                  <Line
-                    x1={px(marker.rawX)}
-                    y1={px(marker.rawY)}
-                    x2={px(neighbour.x)}
-                    y2={px(neighbour.y)}
-                    stroke={theme.colors.accent}
-                    strokeOpacity={0.7}
-                    strokeWidth={1 + neighbour.weight * 5}
-                  />
-                  <SvgText
-                    x={px(neighbour.x) + 6}
-                    y={px(neighbour.y) - 6}
-                    fontSize={9}
-                    fontWeight="700"
-                    fill={theme.colors.accentDark}
-                  >
-                    {`${neighbour.label} ${neighbour.weight.toFixed(2)}`}
-                  </SvgText>
-                </G>
-              ))
-            : null}
-
-          {props.virtualVisitor ? (
-            <Circle
-              cx={px(props.virtualVisitor.x)}
-              cy={px(props.virtualVisitor.y)}
-              r={11}
-              fill="none"
-              stroke={theme.colors.ink}
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
-            />
-          ) : null}
-
-          {marker ? (
-            <G>
-              <Circle
-                cx={px(marker.x)}
-                cy={px(marker.y)}
-                r={Math.max(0.3, marker.spreadM) * scale}
-                fill="rgba(140,57,47,0.12)"
-                stroke="rgba(140,57,47,0.35)"
-                strokeWidth={1}
-              />
-              {props.showAlgorithm ? (
+              {props.virtualVisitor ? (
                 <Circle
-                  cx={px(marker.rawX)}
-                  cy={px(marker.rawY)}
-                  r={4}
+                  cx={px(props.virtualVisitor.x)}
+                  cy={px(props.virtualVisitor.y)}
+                  r={11}
                   fill="none"
-                  stroke={theme.colors.accentDark}
+                  stroke={theme.colors.ink}
                   strokeWidth={1.5}
+                  strokeDasharray="3 3"
                 />
               ) : null}
-              <Circle
-                cx={px(marker.x)}
-                cy={px(marker.y)}
-                r={8}
-                fill={theme.colors.accent}
-                stroke={theme.colors.white}
-                strokeWidth={3}
-              />
+
+              {marker ? (
+                <G>
+                  <Circle
+                    cx={px(marker.x)}
+                    cy={px(marker.y)}
+                    r={Math.max(0.3, marker.spreadM) * scale}
+                    fill="rgba(140,57,47,0.12)"
+                    stroke="rgba(140,57,47,0.35)"
+                    strokeWidth={1}
+                  />
+                  {props.showAlgorithm ? (
+                    <Circle
+                      cx={px(marker.rawX)}
+                      cy={px(marker.rawY)}
+                      r={4}
+                      fill="none"
+                      stroke={theme.colors.accentDark}
+                      strokeWidth={1.5}
+                    />
+                  ) : null}
+                  <Circle
+                    cx={px(marker.x)}
+                    cy={px(marker.y)}
+                    r={8}
+                    fill={theme.colors.accent}
+                    stroke={theme.colors.white}
+                    strokeWidth={3}
+                  />
+                </G>
+              ) : props.fallbackPoint ? (
+                <Circle
+                  cx={px(props.fallbackPoint.x)}
+                  cy={px(props.fallbackPoint.y)}
+                  r={8}
+                  fill={theme.colors.brass}
+                  stroke={theme.colors.white}
+                  strokeWidth={3}
+                />
+              ) : null}
             </G>
-          ) : props.fallbackPoint ? (
-            <Circle
-              cx={px(props.fallbackPoint.x)}
-              cy={px(props.fallbackPoint.y)}
-              r={8}
-              fill={theme.colors.brass}
-              stroke={theme.colors.white}
-              strokeWidth={3}
-            />
-          ) : null}
-        </Svg>
-      ) : null}
+          </Svg>
+        ) : null}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rotationTools: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  rotationButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.line,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.paper,
+  },
+  rotationText: {
+    color: theme.colors.ink,
+    fontFamily: theme.type.body,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  rotationDisabled: { opacity: 0.45 },
+  rotationCaption: {
+    color: theme.colors.muted,
+    fontFamily: theme.type.body,
+    fontSize: 12,
+    marginBottom: 8,
+  },
   frame: {
     width: '100%',
     backgroundColor: theme.colors.canvas,

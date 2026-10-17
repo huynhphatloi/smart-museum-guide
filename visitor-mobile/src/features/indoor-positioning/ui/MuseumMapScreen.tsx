@@ -103,6 +103,7 @@ export function MuseumMapScreen() {
 
             <FloorMap
               plan={plan}
+              language={language}
               estimate={estimate}
               fallbackPoint={fallbackPoint}
               confirmedZone={confirmedZone}
