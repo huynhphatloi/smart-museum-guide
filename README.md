@@ -192,6 +192,20 @@ With three beacons in a 5 × 5 m room, errors are around a metre and depend on t
 
 The algorithm lives in `visitor-mobile/src/features/indoor-positioning/model/` and the API in `backend/api/src/positioning/`.
 
+## Exhibit access statistics
+
+The dashboard records content opened through QR, BLE and manual zone entry. Visitor clients POST to `/api/public/exhibit-visits` only after successfully showing an exhibit. Background content polling, language changes and raw BLE scans do not create access events. BLE simulation is excluded.
+
+One anonymous device opening the same exhibit through the same channel within 30 minutes counts as one visit. Random per-install/browser identifiers estimate distinct devices, not verified people; clearing browser/app data or using another device changes that identifier. The server independently deduplicates concurrent requests and event-ID retries. Event timestamps come from the server, are stored in UTC and are grouped/displayed in `Asia/Ho_Chi_Minh`. No account, hardware identifier, IP address or RSSI is stored in the access table. Calibration uploads remain a separate staff operation.
+
+`GET /api/admin/analytics` requires staff authentication. It accepts inclusive `from`/`to` calendar dates (maximum 366 days), an optional `source=QR|BLE|MANUAL`, and a history `page`. It returns totals, distinct devices, the top 20 exhibits, hourly and daily counts, peak hours and paginated dated history. Historical titles survive exhibit deletion. Counts begin after deploying the migration and updated clients; there is no reconstruction of past access. Delivery is best effort with three idempotent attempts and requires connectivity; this is content engagement analytics, not a physical occupancy counter.
+
+Focused verification with a dedicated local test database:
+
+```bash
+ANALYTICS_TEST_DATABASE_URL=postgresql://USER@localhost/smart_museum_analytics_codex_TEST npm --workspace api test -- --runInBand analytics
+```
+
 ## Demo content
 
 The seeded exhibits are sample content, not objects owned by any museum deploying this project. Replace them with your own catalogue before going live. Images are in `backend/api/prisma/seed-assets/images/`:

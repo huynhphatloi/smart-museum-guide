@@ -260,6 +260,7 @@ model Exhibit {
   media             ExhibitMedia[]
   assignments       ExhibitAssignment[]
   localizationTasks LocalizationTask[]
+  visits            ExhibitVisit[]
 
   @@index([status])
   @@map("exhibits")
@@ -377,4 +378,26 @@ model ExhibitAssignment {
   @@index([zoneId, activeFrom])
   @@index([exhibitId])
   @@map("exhibit_assignments")
+}
+
+
+/// Anonymous content access, recorded only after a visitor opens an exhibit.
+/// IDs are random app/browser identifiers, not accounts or hardware IDs.
+model ExhibitVisit {
+  id            String   @id
+  visitorId     String
+  exhibitId     String?
+  exhibitCode   String
+  exhibitTitle  String
+  zoneCode      String
+  source        String
+  platform      String
+  occurredAt    DateTime @default(now())
+
+  exhibit Exhibit? @relation(fields: [exhibitId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([exhibitId, occurredAt])
+  @@index([visitorId, exhibitId, source, occurredAt])
+  @@map("exhibit_visits")
 }

@@ -18,6 +18,7 @@ import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { DashboardSummary } from '@/lib/types';
+import { VisitAnalyticsPanel } from '@/features/analytics/visit-analytics';
 
 export default function DashboardPage() {
   const { t } = useI18n();
@@ -71,6 +72,8 @@ export default function DashboardPage() {
           {t('dashboardGenerated', { time: formatDateTime(data.generatedAt) })}
         </p>
       </header>
+
+      <VisitAnalyticsPanel />
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {stats.map((stat) => (

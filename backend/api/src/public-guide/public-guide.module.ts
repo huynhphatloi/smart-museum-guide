@@ -9,5 +9,6 @@ import { PublicGuideService } from './public-guide.service';
   imports: [ExhibitsModule, LanguagesModule, PositioningModule],
   controllers: [PublicGuideController],
   providers: [PublicGuideService],
+  exports: [PublicGuideService],
 })
 export class PublicGuideModule {}

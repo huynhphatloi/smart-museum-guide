@@ -13,6 +13,7 @@ import { ApiError, api } from '../../../shared/api/client';
 import { ActiveExhibitResponse, LanguageOption } from '../../../shared/api/types';
 import { env } from '../../../shared/config/env';
 import { t } from '../../../shared/i18n';
+import { AccessSource } from '../../analytics/model/access-tracker';
 import { RegisteredBeacon, findZoneName } from '../../beacon-detection/model/beacon-registry';
 import { BeaconScanner, DEFAULT_SCANNER_CONFIG } from '../../beacon-detection/model/scanner';
 import { RealBleSignalSource } from '../../beacon-detection/model/sources/real-ble-source';
@@ -70,13 +71,14 @@ interface GuideContextValue {
   setAutoGuide: (value: boolean) => void;
 
   exhibit: ActiveExhibitResponse | null;
+  exhibitSource: AccessSource;
   exhibitLoading: boolean;
   exhibitError: ApiError | null;
   prompt: ZonePrompt | null;
   dismissPrompt: () => void;
 
   /** QR / manual entry path. Uses the same backend resolution as BLE. */
-  openZone: (zoneCode: string) => Promise<void>;
+  openZone: (zoneCode: string, source?: 'QR' | 'MANUAL') => Promise<void>;
   reloadExhibit: () => Promise<void>;
 }
 
@@ -117,6 +119,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   const [simulator, setSimulator] = useState<SimulatedBleSignalSource | null>(null);
 
   const [exhibit, setExhibit] = useState<ActiveExhibitResponse | null>(null);
+  const [exhibitSource, setExhibitSource] = useState<AccessSource>('QR');
   const [exhibitLoading, setExhibitLoading] = useState(false);
   const [exhibitError, setExhibitError] = useState<ApiError | null>(null);
   const [exhibitReceivedAt, setExhibitReceivedAt] = useState(0);
@@ -124,7 +127,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   const scannerRef = useRef<BeaconScanner | null>(null);
   const realSourceRef = useRef<RealBleSignalSource | null>(null);
   const lastExhibitRequest = useRef<
-    { kind: 'beacon'; identifier: string } | { kind: 'zone'; code: string } | null
+    { kind: 'beacon'; identifier: string } | { kind: 'zone'; code: string; source: 'QR' | 'MANUAL' } | null
   >(null);
   const languageRef = useRef(language);
   const autoGuideRef = useRef(autoGuide);
@@ -187,47 +190,55 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   // --- content resolution --------------------------------------------------
 
   const loadExhibitForBeacon = useCallback(async (identifier: string) => {
-    lastExhibitRequest.current = { kind: 'beacon', identifier };
+    const request = { kind: 'beacon' as const, identifier };
+    lastExhibitRequest.current = request;
     setExhibitLoading(true);
     setExhibitError(null);
     try {
       const result = await api.activeExhibitForBeacon(identifier, languageRef.current);
+      if (lastExhibitRequest.current !== request) return;
       setExhibit(result);
+      setExhibitSource('BLE');
       setExhibitReceivedAt(Date.now());
     } catch (error) {
+      if (lastExhibitRequest.current !== request) return;
       setExhibit(null);
       setExhibitReceivedAt(Date.now());
       setExhibitError(
         error instanceof ApiError ? error : new ApiError(0, 'UNKNOWN', 'Unexpected error'),
       );
     } finally {
-      setExhibitLoading(false);
+      if (lastExhibitRequest.current === request) setExhibitLoading(false);
     }
   }, []);
 
-  const openZone = useCallback(async (zoneCode: string) => {
-    lastExhibitRequest.current = { kind: 'zone', code: zoneCode };
+  const openZone = useCallback(async (zoneCode: string, source: 'QR' | 'MANUAL' = 'QR') => {
+    const request = { kind: 'zone' as const, code: zoneCode, source };
+    lastExhibitRequest.current = request;
     setExhibitLoading(true);
     setExhibitError(null);
     try {
       const result = await api.activeExhibitForZone(zoneCode, languageRef.current);
+      if (lastExhibitRequest.current !== request) return;
       setExhibit(result);
+      setExhibitSource(source);
       setExhibitReceivedAt(Date.now());
     } catch (error) {
+      if (lastExhibitRequest.current !== request) return;
       setExhibit(null);
       setExhibitReceivedAt(Date.now());
       setExhibitError(
         error instanceof ApiError ? error : new ApiError(0, 'UNKNOWN', 'Unexpected error'),
       );
     } finally {
-      setExhibitLoading(false);
+      if (lastExhibitRequest.current === request) setExhibitLoading(false);
     }
   }, []);
 
   const reloadExhibit = useCallback(async () => {
     const request = lastExhibitRequest.current;
     if (request?.kind === 'beacon') return loadExhibitForBeacon(request.identifier);
-    if (request?.kind === 'zone') return openZone(request.code);
+    if (request?.kind === 'zone') return openZone(request.code, request.source);
   }, [loadExhibitForBeacon, openZone]);
 
   // Keep the audio player mounted during background checks and ignore a stale
@@ -244,6 +255,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       if (lastExhibitRequest.current !== request || languageRef.current !== requestedLanguage)
         return;
       setExhibit(result);
+      setExhibitSource(request.kind === 'beacon' ? 'BLE' : request.source);
       setExhibitError(null);
       setExhibitReceivedAt(Date.now());
     } catch (error) {
@@ -433,6 +445,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       autoGuide,
       setAutoGuide,
       exhibit,
+      exhibitSource,
       exhibitLoading,
       exhibitError,
       prompt,
@@ -459,6 +472,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       autoGuide,
       setAutoGuide,
       exhibit,
+      exhibitSource,
       exhibitLoading,
       exhibitError,
       prompt,

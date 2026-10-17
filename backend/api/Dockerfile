@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 COPY api/package.json ./api/
 COPY admin/package.json ./admin/
 
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
 FROM deps AS build
 COPY api ./api
@@ -37,8 +37,8 @@ COPY api/package.json ./api/
 COPY admin/package.json ./admin/
 
 # Production deps + prisma CLI (devDependency) for migrate deploy on boot.
-RUN npm ci --omit=dev --ignore-scripts \
-  && npm install prisma@5.22.0 --no-save --ignore-scripts \
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+  && npm install prisma@5.22.0 --no-save --ignore-scripts --no-audit --no-fund \
   && chown -R nestjs:nodejs /app
 
 COPY --from=build --chown=nestjs:nodejs /app/api/dist ./api/dist

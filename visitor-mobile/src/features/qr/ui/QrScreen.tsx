@@ -19,7 +19,7 @@ export function QrScreen() {
   const [scannerActive, setScannerActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCode(raw: string) {
+  async function handleCode(raw: string, source: 'QR' | 'MANUAL' = 'QR') {
     const zoneCode = zoneCodeFromQr(raw);
     if (!zoneCode) {
       setError(t(language, 'invalidZoneCode'));
@@ -27,7 +27,7 @@ export function QrScreen() {
     }
     setScannerActive(false);
     setError(null);
-    await openZone(zoneCode);
+    await openZone(zoneCode, source);
     navigation.navigate('ExhibitDetail', { autoPlay: false });
   }
 
@@ -93,7 +93,7 @@ export function QrScreen() {
           />
           <Pressable
             accessibilityRole="button"
-            onPress={() => void handleCode(manualCode)}
+            onPress={() => void handleCode(manualCode, 'MANUAL')}
             style={({ pressed }) => [styles.openButton, pressed && styles.pressed]}
           >
             <Text style={styles.openButtonText}>{t(language, 'qrOpen')}</Text>

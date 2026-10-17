@@ -52,7 +52,7 @@ export function HomePage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = code.trim().toUpperCase();
-    if (trimmed) navigate(`/q/${encodeURIComponent(trimmed)}`);
+    if (trimmed) navigate(`/q/${encodeURIComponent(trimmed)}?entry=manual`);
   }
 
   function moveArtwork(event: PointerEvent<HTMLElement>) {

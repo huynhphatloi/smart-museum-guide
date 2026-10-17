@@ -1,4 +1,5 @@
 import { RegisteredBeacon } from '../../features/beacon-detection/model/beacon-registry';
+import type { VisitEvent } from '../../features/analytics/model/access-tracker';
 import {
   CaptureFingerprint,
   FloorPlan,
@@ -70,6 +71,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
+  recordVisit: (event: VisitEvent) => request<{ recorded: boolean }>('/public/exhibit-visits', {
+    method: 'POST', body: event,
+  }),
   health: () => request<{ status: string }>('/health'),
 
   languages: () => request<LanguagesResponse>('/public/languages'),

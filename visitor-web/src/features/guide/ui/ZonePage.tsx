@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { trackExhibitVisit } from '../../analytics/model/track-visit';
 import { t } from '../../../shared/i18n';
 import { rememberLanguage, resolveInitialLanguage } from '../../../shared/i18n/language';
 import { BrandMark } from '../../../shared/ui/BrandMark';
@@ -22,6 +23,8 @@ type Status = 'loading' | 'ready' | 'error';
  */
 export function ZonePage() {
   const { zoneCode = '' } = useParams<{ zoneCode: string }>();
+  const [search] = useSearchParams();
+  const source = search.get('entry') === 'manual' ? 'MANUAL' : 'QR';
   const [languages, setLanguages] = useState<string[]>(['vi', 'en']);
   const [language, setLanguage] = useState<string>('vi');
   const [languageReady, setLanguageReady] = useState(false);
@@ -29,6 +32,21 @@ export function ZonePage() {
   const [data, setData] = useState<ActiveExhibitResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [receivedAt, setReceivedAt] = useState(0);
+
+  const visibleId = status === 'ready' ? data?.exhibit.id : undefined;
+  const visibleZone = status === 'ready' ? data?.zone.code : undefined;
+  useEffect(() => {
+    if (!visibleId || !visibleZone || visibleZone !== zoneCode.toUpperCase()) return;
+    // Use the identifiers, not the polling response object, as the access trigger.
+    const record = () => trackExhibitVisit({ exhibitId: visibleId, zoneCode: visibleZone }, source);
+    record();
+    document.addEventListener('visibilitychange', record);
+    window.addEventListener('online', record);
+    return () => {
+      document.removeEventListener('visibilitychange', record);
+      window.removeEventListener('online', record);
+    };
+  }, [visibleId, visibleZone, zoneCode, source]);
 
   // Ask the museum which languages it offers, then pick the visitor's.
   useEffect(() => {
@@ -193,6 +211,9 @@ export function ZonePage() {
       {data ? <ZoneMap zoneCode={data.zone.code} language={language} /> : null}
       <footer className="border-t border-museum-line py-8 text-center text-xs text-museum-muted">
         {t(language, 'poweredBy')}
+        <p className="mx-auto mt-2 max-w-xl px-5 leading-relaxed">{language === 'vi'
+          ? 'Lượt mở hiện vật và thời gian được ghi nhận bằng mã ngẫu nhiên để thống kê, không cần tài khoản.'
+          : 'Exhibit access and times are recorded with a random identifier for statistics. No account is required.'}</p>
       </footer>
     </>
   );

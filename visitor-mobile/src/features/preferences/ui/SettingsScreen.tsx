@@ -64,6 +64,13 @@ export function SettingsScreen() {
         </Pressable>
       ) : null}
 
+      <View style={styles.section}>
+        <Subtitle>{t(language, 'privacy')}</Subtitle>
+        <Body>{language === 'vi'
+          ? 'Lượt mở hiện vật và thời gian được gửi kèm mã ngẫu nhiên để thống kê. Không dùng tài khoản hay mã thiết bị phần cứng.'
+          : 'Exhibit access and times are sent with a random identifier for statistics. No account or hardware identifier is used.'}</Body>
+      </View>
+
       <View style={styles.about}>
         <BrandMark size={42} />
         <View style={styles.aboutCopy}>

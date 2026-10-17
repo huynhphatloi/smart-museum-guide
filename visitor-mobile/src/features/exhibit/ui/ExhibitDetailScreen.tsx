@@ -1,6 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { ActivityIndicator, AppState, Image, StyleSheet, Text, View } from 'react-native';
+import { trackExhibitVisit } from '../../analytics/model/track-visit';
 import { RootStackParamList } from '../../../application/navigation/types';
 import { languageLabel, t } from '../../../shared/i18n';
 import { theme } from '../../../shared/theme';
@@ -19,10 +21,28 @@ export function ExhibitDetailScreen({ route }: Props) {
     languageOptions,
     setLanguage,
     exhibit,
+    exhibitSource,
     exhibitLoading,
     exhibitError,
     reloadExhibit,
   } = useGuide();
+
+  const visibleExhibit = !exhibitLoading && !exhibitError ? exhibit : null;
+  const currentExhibit = useRef(visibleExhibit);
+  currentExhibit.current = visibleExhibit;
+  const visibleId = visibleExhibit?.exhibit.id;
+  useFocusEffect(useCallback(() => {
+    const record = () => {
+      const data = currentExhibit.current;
+      if (data && data.exhibit.id === visibleId && AppState.currentState === 'active')
+        trackExhibitVisit(data, exhibitSource);
+    };
+    record();
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') record();
+    });
+    return () => listener.remove();
+  }, [visibleId, exhibitSource]));
 
   if (exhibitLoading) {
     return (

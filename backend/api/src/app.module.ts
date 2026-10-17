@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { resolve } from 'path';
 import { AssignmentsModule } from './assignments/assignments.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { BeaconsModule } from './beacons/beacons.module';
 import { AppConfigModule } from './config/config.module';
@@ -42,6 +43,7 @@ import { ZonesModule } from './zones/zones.module';
     PositioningModule,
     PublicGuideModule,
     DashboardModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

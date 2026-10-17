@@ -5,8 +5,8 @@ import { GuideQueryDto } from './dto/public-guide.dto';
 import { PublicGuideService } from './public-guide.service';
 
 /**
- * Unauthenticated, visitor facing endpoints. No account, no tracking, no
- * personally identifying data is accepted or stored by any of these routes.
+ * Unauthenticated visitor content endpoints. Reads do not record visits;
+ * clients explicitly record visible content through the analytics endpoint.
  */
 @Controller()
 export class PublicGuideController {
