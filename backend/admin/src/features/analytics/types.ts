@@ -4,11 +4,16 @@ export interface VisitCounts {
   qr: number;
   ble: number;
   manual: number;
+  converted: { visits: number; qr: number; ble: number; manual: number };
+}
+export interface AnalyticsSettings {
+  visitMultiplier: number;
 }
 export interface VisitAnalytics {
   range: { from: string; to: string; timeZone: string };
   generatedAt: string;
   dedupMinutes: number;
+  conversion: AnalyticsSettings;
   totals: VisitCounts;
   peakHours: number[];
   exhibits: Array<

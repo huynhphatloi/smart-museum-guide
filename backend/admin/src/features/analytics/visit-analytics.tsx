@@ -18,6 +18,7 @@ import { apiFetch } from '@/lib/api-client';
 import { useI18n } from '@/lib/i18n';
 import { analyticsCopy } from './copy';
 import { VisitAnalytics } from './types';
+import { VisitMultiplier } from './visit-multiplier';
 
 const DAY = 86_400_000;
 function dateRange(days: number) {
@@ -89,12 +90,15 @@ export function VisitAnalyticsPanel() {
     setPage(1);
     setRangeError(false);
   }
-  const peak = Math.max(1, ...(data?.hourly.map((row) => row.visits) ?? []));
+  const peak = Math.max(1, ...(data?.hourly.map((row) => row.converted.visits) ?? []));
   const busiest = data?.daily.reduce((best, row) => (row.visits > best.visits ? row : best), {
     date: '',
     visits: 0,
+    converted: { visits: 0 },
   });
   const pages = Math.max(1, Math.ceil((data?.history.total ?? 0) / 25));
+  const multiplier = data?.conversion.visitMultiplier ?? 1;
+  const convertedLabel = (label: string) => `${label} (×${multiplier})`;
 
   return (
     <section aria-labelledby="access-heading" className="space-y-6 border-y border-border py-7">
@@ -182,13 +186,15 @@ export function VisitAnalyticsPanel() {
         </div>
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-5">
+          <VisitMultiplier value={multiplier} />
+          <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-6">
             {[
               { label: copy.visits, value: data.totals.visits },
+              { label: convertedLabel(copy.converted), value: data.totals.converted.visits },
               { label: copy.devices, value: data.totals.devices },
-              { label: 'QR', value: data.totals.qr },
-              { label: 'BLE', value: data.totals.ble },
-              { label: copy.manual, value: data.totals.manual },
+              { label: convertedLabel('QR'), value: data.totals.converted.qr },
+              { label: convertedLabel('BLE'), value: data.totals.converted.ble },
+              { label: convertedLabel(copy.manual), value: data.totals.converted.manual },
             ].map((item) => (
               <div key={item.label}>
                 <dt className="text-sm text-muted-foreground">{item.label}</dt>
@@ -216,17 +222,17 @@ export function VisitAnalyticsPanel() {
                 {data.hourly.map((row) => (
                   <li
                     key={row.hour}
-                    aria-label={`${hourLabel(row.hour)}: ${number(row.visits)} ${copy.visits}`}
-                    title={`${hourLabel(row.hour)}: ${number(row.visits)}`}
+                    aria-label={`${hourLabel(row.hour)}: ${number(row.converted.visits)} ${copy.converted}, ${number(row.visits)} ${copy.visits}`}
+                    title={`${hourLabel(row.hour)}: ${number(row.converted.visits)} ${copy.converted}, ${number(row.visits)} ${copy.visits}`}
                   >
                     <div
                       aria-hidden="true"
                       className="flex h-36 flex-col items-center justify-end gap-1"
                     >
-                      <span className="text-[10px] tabular-nums">{row.visits || ''}</span>
+                      <span className="text-[10px] tabular-nums">{row.converted.visits || ''}</span>
                       <div
                         className="w-full bg-primary/80"
-                        style={{ height: row.visits ? Math.max(3, (row.visits / peak) * 112) : 1 }}
+                        style={{ height: row.visits ? Math.max(3, (row.converted.visits / peak) * 112) : 1 }}
                       />
                     </div>
                     <span
@@ -245,7 +251,7 @@ export function VisitAnalyticsPanel() {
               {busiest?.visits ? (
                 <>
                   <span className="mx-3 text-muted-foreground">·</span>
-                  {copy.peakDay}: {date(busiest.date)} ({number(busiest.visits)})
+                  {copy.peakDay}: {date(busiest.date)} ({number(busiest.converted.visits)} {copy.converted.toLowerCase()})
                 </>
               ) : null}
             </p>
@@ -254,16 +260,18 @@ export function VisitAnalyticsPanel() {
             <div>
               <h3 className="font-medium">{copy.ranked}</h3>
               <p className="text-xs text-muted-foreground">{copy.rankedHint}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{copy.channelsHint}</p>
             </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{copy.exhibit}</TableHead>
                   <TableHead className="text-right">{copy.visits}</TableHead>
+                  <TableHead className="text-right">{convertedLabel(copy.converted)}</TableHead>
                   <TableHead className="text-right">{copy.devices}</TableHead>
-                  <TableHead className="text-right">QR</TableHead>
-                  <TableHead className="text-right">BLE</TableHead>
-                  <TableHead className="text-right">{copy.manual}</TableHead>
+                  <TableHead className="text-right">{convertedLabel('QR')}</TableHead>
+                  <TableHead className="text-right">{convertedLabel('BLE')}</TableHead>
+                  <TableHead className="text-right">{convertedLabel(copy.manual)}</TableHead>
                   <TableHead>{copy.last}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -283,7 +291,7 @@ export function VisitAnalyticsPanel() {
                       )}
                       <p className="text-xs text-muted-foreground">{row.code}</p>
                     </TableCell>
-                    {[row.visits, row.devices, row.qr, row.ble, row.manual].map((value, index) => (
+                    {[row.visits, row.converted.visits, row.devices, row.converted.qr, row.converted.ble, row.converted.manual].map((value, index) => (
                       <TableCell key={index} className="text-right tabular-nums">
                         {number(value)}
                       </TableCell>
@@ -295,7 +303,7 @@ export function VisitAnalyticsPanel() {
                 ))}
                 {!data.exhibits.length ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-muted-foreground">
+                    <TableCell colSpan={8} className="text-muted-foreground">
                       {copy.noVisits}
                     </TableCell>
                   </TableRow>
@@ -310,7 +318,7 @@ export function VisitAnalyticsPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{copy.date}</TableHead>
-                    {[copy.visits, copy.devices, 'QR', 'BLE', copy.manual].map((label) => (
+                    {[copy.visits, convertedLabel(copy.converted), copy.devices, convertedLabel('QR'), convertedLabel('BLE'), convertedLabel(copy.manual)].map((label) => (
                       <TableHead className="text-right" key={label}>
                         {label}
                       </TableHead>
@@ -321,7 +329,7 @@ export function VisitAnalyticsPanel() {
                   {data.daily.map((row) => (
                     <TableRow key={row.date}>
                       <TableCell>{date(row.date)}</TableCell>
-                      {[row.visits, row.devices, row.qr, row.ble, row.manual].map((n, index) => (
+                      {[row.visits, row.converted.visits, row.devices, row.converted.qr, row.converted.ble, row.converted.manual].map((n, index) => (
                         <TableCell className="text-right tabular-nums" key={index}>
                           {number(n)}
                         </TableCell>
