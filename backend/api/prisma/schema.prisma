@@ -383,6 +383,14 @@ model ExhibitAssignment {
 
 /// Anonymous content access, recorded only after a visitor opens an exhibit.
 /// IDs are random app/browser identifiers, not accounts or hardware IDs.
+model AnalyticsSettings {
+  id              String   @id @default("default")
+  visitMultiplier Int      @default(1)
+  updatedAt       DateTime @updatedAt
+
+  @@map("analytics_settings")
+}
+
 model ExhibitVisit {
   id            String   @id
   visitorId     String

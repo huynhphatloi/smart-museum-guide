@@ -1,6 +1,6 @@
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AnalyticsQueryDto, RecordVisitDto } from './analytics.dto';
+import { AnalyticsQueryDto, RecordVisitDto, UpdateAnalyticsSettingsDto } from './analytics.dto';
 import { AnalyticsService } from './analytics.service';
 
 @Controller('public/exhibit-visits')
@@ -22,5 +22,15 @@ export class AnalyticsController {
   @Get()
   summary(@Query() query: AnalyticsQueryDto) {
     return this.analytics.summary(query);
+  }
+
+  @Get('settings')
+  settings() {
+    return this.analytics.settings();
+  }
+
+  @Patch('settings')
+  updateSettings(@Body() body: UpdateAnalyticsSettingsDto) {
+    return this.analytics.updateSettings(body);
   }
 }

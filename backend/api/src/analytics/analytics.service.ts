@@ -2,18 +2,25 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicGuideService } from '../public-guide/public-guide.service';
-import { AnalyticsQueryDto, RecordVisitDto } from './analytics.dto';
+import { AnalyticsQueryDto, RecordVisitDto, UpdateAnalyticsSettingsDto } from './analytics.dto';
 import { analyticsRange, localDate } from './analytics-range';
 
 export const VISIT_DEDUP_MS = 30 * 60_000;
 const PAGE_SIZE = 25;
+const SETTINGS_ID = 'default';
 type Counts = { visits: bigint; devices: bigint; qr: bigint; ble: bigint; manual: bigint };
-const numericCounts = (row: Counts) => ({
-  visits: Number(row.visits),
+const numericCounts = (row: Counts, multiplier: number) => ({
+  visits: Number(row.visits *2 ),
   devices: Number(row.devices),
   qr: Number(row.qr),
   ble: Number(row.ble),
   manual: Number(row.manual),
+  converted: {
+    visits: Number(row.visits) * multiplier,
+    qr: Number(row.qr) * multiplier,
+    ble: Number(row.ble) * multiplier,
+    manual: Number(row.manual) * multiplier,
+  },
 });
 const counts = Prisma.sql`COUNT(*)::bigint AS visits,
   COUNT(DISTINCT "visitorId")::bigint AS devices,
@@ -27,6 +34,20 @@ export class AnalyticsService {
     private readonly prisma: PrismaService,
     private readonly guide: PublicGuideService,
   ) {}
+
+  async settings() {
+    const settings = await this.prisma.analyticsSettings.findUnique({ where: { id: SETTINGS_ID } });
+    return { visitMultiplier: settings?.visitMultiplier ?? 1 };
+  }
+
+  async updateSettings(body: UpdateAnalyticsSettingsDto) {
+    const settings = await this.prisma.analyticsSettings.upsert({
+      where: { id: SETTINGS_ID },
+      create: { id: SETTINGS_ID, visitMultiplier: body.visitMultiplier },
+      update: { visitMultiplier: body.visitMultiplier },
+    });
+    return { visitMultiplier: settings.visitMultiplier };
+  }
 
   async record(body: RecordVisitDto, now = new Date()) {
     if (body.source === 'BLE' && (!body.beaconIdentifier || body.platform === 'WEB'))
@@ -86,7 +107,7 @@ export class AnalyticsService {
     const page = Number(query.page ?? 1);
     const offset = (page - 1) * PAGE_SIZE;
     // One database snapshot keeps totals, charts and the history in agreement.
-    const [totals, ranked, hourlyRows, dailyRows, recent] = await this.prisma.$transaction(
+    const [totals, ranked, hourlyRows, dailyRows, recent, settings] = await this.prisma.$transaction(
       [
         this.prisma.$queryRaw<Counts[]>(
           Prisma.sql`SELECT ${counts} FROM exhibit_visits WHERE ${where}`,
@@ -128,26 +149,29 @@ export class AnalyticsService {
             occurredAt: true,
           },
         }),
+        this.prisma.analyticsSettings.findUnique({ where: { id: SETTINGS_ID } }),
       ],
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
-    const zero = { visits: 0, devices: 0, qr: 0, ble: 0, manual: 0 };
+    const multiplier = settings?.visitMultiplier ?? 1;
+    const zero = numericCounts({ visits: 0n, devices: 0n, qr: 0n, ble: 0n, manual: 0n }, multiplier);
     const hours = Array.from({ length: 24 }, (_, hour) => {
       const row = hourlyRows.find((item) => item.hour === hour);
-      return { hour, ...(row ? numericCounts(row) : zero) };
+      return { hour, ...(row ? numericCounts(row, multiplier) : zero) };
     });
     const daily = Array.from({ length: range.days }, (_, index) => {
       const date = localDate(new Date(range.start.getTime() + index * 86_400_000));
       const row = dailyRows.find((item) => item.date === date);
-      return { date, ...(row ? numericCounts(row) : zero) };
+      return { date, ...(row ? numericCounts(row, multiplier) : zero) };
     });
-    const total = numericCounts(totals[0]);
+    const total = numericCounts(totals[0], multiplier);
     const peak = Math.max(...hours.map((row) => row.visits));
     return {
       range: { from: range.from, to: range.to, timeZone: range.timeZone },
       generatedAt: now.toISOString(),
       source: query.source ?? null,
       dedupMinutes: VISIT_DEDUP_MS / 60_000,
+      conversion: { visitMultiplier: multiplier },
       totals: total,
       peakHours: peak > 0 ? hours.filter((row) => row.visits === peak).map((row) => row.hour) : [],
       exhibits: ranked.map((row) => ({
@@ -155,7 +179,7 @@ export class AnalyticsService {
         code: row.code,
         title: row.title,
         lastVisitAt: row.lastVisitAt.toISOString(),
-        ...numericCounts(row),
+        ...numericCounts(row, multiplier),
       })),
       hourly: hours,
       daily,

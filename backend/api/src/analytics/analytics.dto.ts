@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsUUID, Matches } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsUUID, Matches, Max, Min } from 'class-validator';
 
 export const VISIT_SOURCES = ['QR', 'BLE', 'MANUAL'] as const;
 export type VisitSource = (typeof VISIT_SOURCES)[number];
@@ -43,4 +43,11 @@ export class AnalyticsQueryDto {
   @IsOptional()
   @Matches(/^[1-9]\d{0,5}$/)
   page?: string;
+}
+
+export class UpdateAnalyticsSettingsDto {
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  visitMultiplier!: number;
 }
